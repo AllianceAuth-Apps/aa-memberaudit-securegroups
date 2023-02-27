@@ -1,1 +1,5 @@
-__version__ = "0.1.0"
+"""
+Init module
+"""
+
+__version__ = "0.2.0"

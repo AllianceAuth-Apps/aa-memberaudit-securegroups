@@ -4,6 +4,7 @@ The models
 
 # Standard Library
 import datetime
+from collections import defaultdict
 
 # Third Party
 import humanize
@@ -15,11 +16,21 @@ from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
+# Alliance Auth
+from allianceauth.authentication.models import CharacterOwnership
+
 # Member Audit
+from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import Character, CharacterAsset, General, SkillSet
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
+
+
+def _get_threshold_date(timedelta_in_days: int) -> datetime:
+    return datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        days=timedelta_in_days
+    )
 
 
 class SingletonModel(models.Model):
@@ -54,7 +65,7 @@ class SingletonModel(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        save action
+        Save action
         :param args:
         :param kwargs:
         :return:
@@ -106,15 +117,6 @@ class BaseFilter(models.Model):
 
         return f"{self.name}: {self.description}"
 
-    @property
-    def name(self):
-        """
-        Filter name
-        :return:
-        """
-
-        return "Compliance"
-
     def process_filter(self, user: User):
         """
         This is the check run against a users characters
@@ -124,6 +126,17 @@ class BaseFilter(models.Model):
 
         raise NotImplementedError("Please Create a filter!")
 
+    def audit_filter(self, users):
+        """
+        Bulk check system that also advises the user with simple messages
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        raise NotImplementedError("Please Create an audit function!")
+
 
 class ActivityFilter(BaseFilter):
     """
@@ -131,7 +144,7 @@ class ActivityFilter(BaseFilter):
     """
 
     inactivity_threshold = models.PositiveIntegerField(
-        help_text=_("Maximum allowable inactivity, in <strong>days</strong>."),
+        help_text=_("Maximum allowable inactivity, in <strong>days</strong>.")
     )
 
     @property
@@ -150,9 +163,9 @@ class ActivityFilter(BaseFilter):
         :return:
         """
 
-        threshold_date = datetime.datetime.now(
-            datetime.timezone.utc
-        ) - datetime.timedelta(days=self.inactivity_threshold)
+        threshold_date = _get_threshold_date(
+            timedelta_in_days=self.inactivity_threshold
+        )
 
         return (
             Character.objects.owned_by_user(user=user)
@@ -164,6 +177,42 @@ class ActivityFilter(BaseFilter):
             > 0
         )
 
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        threshold_date = _get_threshold_date(
+            timedelta_in_days=self.inactivity_threshold
+        )
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user in users:
+            characters = Character.objects.owned_by_user(user=user).filter(
+                Q(online_status__last_login__gt=threshold_date)
+                | Q(online_status__last_logout__gt=threshold_date),
+            )
+
+            if characters.count() > 0:
+                chars = defaultdict(list)
+
+                for char in characters:
+                    chars[char.user.pk].append(char.eve_character.character_name)
+
+                for char_user, char_list in chars.items():
+                    active_characters = ", ".join(char_list)
+                    output[char_user] = {
+                        "message": f"Active Characters: {active_characters}",
+                        "check": True,
+                    }
+
+        return output
+
 
 class AgeFilter(BaseFilter):
     """
@@ -171,7 +220,7 @@ class AgeFilter(BaseFilter):
     """
 
     age_threshold = models.PositiveIntegerField(
-        help_text=_("Minimum allowable age, in <strong>days</strong>."),
+        help_text=_("Minimum allowable age, in <strong>days</strong>.")
     )
 
     @property
@@ -181,7 +230,7 @@ class AgeFilter(BaseFilter):
         :return:
         """
 
-        return f"Member Audit Age [days={self.age_threshold}]"
+        return f"Character Age [days={self.age_threshold}]"
 
     def process_filter(self, user: User):
         """
@@ -190,18 +239,43 @@ class AgeFilter(BaseFilter):
         :return:
         """
 
-        threshold_date = datetime.datetime.now(
-            datetime.timezone.utc
-        ) - datetime.timedelta(days=self.age_threshold)
+        threshold_date = _get_threshold_date(timedelta_in_days=self.age_threshold)
 
         return (
             Character.objects.owned_by_user(user=user)
-            .filter(
-                details__birthday__lt=threshold_date,
-            )
+            .filter(details__birthday__lt=threshold_date)
             .count()
             > 0
         )
+
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        threshold_date = _get_threshold_date(timedelta_in_days=self.age_threshold)
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user in users:
+            characters = Character.objects.owned_by_user(user=user).filter(
+                details__birthday__lt=threshold_date
+            )
+
+            if characters.count() > 0:
+                chars = defaultdict(list)
+
+                for char in characters:
+                    chars[char.user.pk].append(char.eve_character.character_name)
+
+                for char_user, char_list in chars.items():
+                    output[char_user] = {"message": ", ".join(char_list), "check": True}
+
+        return output
 
 
 class AssetFilter(BaseFilter):
@@ -239,11 +313,58 @@ class AssetFilter(BaseFilter):
             > 0
         )
 
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        character_ownership = CharacterOwnership.objects.filter(
+            user__in=users,
+            character__memberaudit_character__assets__eve_type__in=self.assets.all(),
+        ).values(
+            "user__id",
+            "character__character_name",
+            "character__memberaudit_character__assets__eve_type__name",
+        )
+
+        chars = defaultdict(list)
+
+        for character in character_ownership:
+            character_name = character["character__character_name"]
+            asset_name = character[
+                "character__memberaudit_character__assets__eve_type__name"
+            ]
+
+            if self.assets.all().count() > 1:
+                chars[character["user__id"]].append(f"{character_name} ({asset_name})")
+            else:
+                chars[character["user__id"]].append(f"{character_name}")
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for character, char_list in chars.items():
+            output[character] = {"message": ", ".join(char_list), "check": True}
+
+        return output
+
 
 class ComplianceFilter(BaseFilter, SingletonModel):
     """
     ComplianceFilter
     """
+
+    @property
+    def name(self):
+        """
+        Filter name
+        :return:
+        """
+
+        return "Compliance"
 
     def process_filter(self, user: User):
         """
@@ -256,6 +377,26 @@ class ComplianceFilter(BaseFilter, SingletonModel):
 
         return is_compliant
 
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user in users:
+            if General.compliant_users().filter(pk=user.pk).exists():
+                output[user.pk] = {
+                    "message": f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
+                    "check": True,
+                }
+
+        return output
+
 
 class SkillPointFilter(BaseFilter):
     """
@@ -263,7 +404,7 @@ class SkillPointFilter(BaseFilter):
     """
 
     skill_point_threshold = models.PositiveBigIntegerField(
-        help_text=_("Minimum allowable skillpoints."),
+        help_text=_("Minimum allowable skillpoints.")
     )
 
     @property
@@ -287,12 +428,37 @@ class SkillPointFilter(BaseFilter):
 
         return (
             Character.objects.owned_by_user(user=user)
-            .filter(
-                skillpoints__total__gt=self.skill_point_threshold,
-            )
+            .filter(skillpoints__total__gt=self.skill_point_threshold)
             .count()
             > 0
         )
+
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user in users:
+            characters = Character.objects.owned_by_user(user=user).filter(
+                skillpoints__total__gt=self.skill_point_threshold
+            )
+
+            if characters.count() > 0:
+                chars = defaultdict(list)
+
+                for char in characters:
+                    chars[char.user.pk].append(char.eve_character.character_name)
+
+                for char_user, char_list in chars.items():
+                    output[char_user] = {"message": ", ".join(char_list), "check": True}
+
+        return output
 
 
 class SkillSetFilter(BaseFilter):
@@ -334,3 +500,35 @@ class SkillSetFilter(BaseFilter):
                     return True
 
         return False
+
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user in users:
+            chars = defaultdict(list)
+            characters = Character.objects.owned_by_user(user=user)
+
+            for character in characters:
+                for check in character.skill_set_checks.filter(
+                    skill_set__in=self.skill_sets.all()
+                ):
+                    if check.failed_required_skills.count() == 0:
+                        chars[character.user.pk].append(
+                            character.eve_character.character_name
+                        )
+
+                        for char_user, char_list in chars.items():
+                            output[char_user] = {
+                                "message": ", ".join(char_list),
+                                "check": True,
+                            }
+
+        return output
