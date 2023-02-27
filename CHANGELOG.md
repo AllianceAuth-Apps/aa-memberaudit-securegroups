@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [In Development]
 
 
+## [0.2.0] - 2023-02-27
+
+### Added
+
+- Secure Group's audit filter to the filters for better visual feedback
+
+
 ## [0.1.0] - 2022-08-06
 
 ### Fixed
