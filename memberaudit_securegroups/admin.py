@@ -7,6 +7,7 @@ import humanize
 
 # Django
 from django.contrib import admin
+from django.utils.translation import ngettext
 
 # Memberaudit Securegroups
 from memberaudit_securegroups.models import (
@@ -42,7 +43,15 @@ class ActivityFilterAdmin(admin.ModelAdmin):
     list_display = ("description", "_inactivity_threshold")
 
     def _inactivity_threshold(self, obj):
-        return f"{obj.inactivity_threshold:d} days"
+        inactivity_threshold = obj.inactivity_threshold
+
+        return_value = ngettext(
+            f"{inactivity_threshold:d} day",
+            f"{inactivity_threshold:d} days",
+            inactivity_threshold,
+        )
+
+        return return_value
 
 
 @admin.register(AgeFilter)
@@ -85,7 +94,9 @@ class SkillPointFilterAdmin(admin.ModelAdmin):
     list_display = ("description", "_skill_point_threshold")
 
     def _skill_point_threshold(self, obj):
-        return f"{humanize.intword(obj.skill_point_threshold)} skill points"
+        skillpoints = humanize.intword(obj.skill_point_threshold)
+
+        return f"{skillpoints} skill points"
 
 
 @admin.register(SkillSetFilter)

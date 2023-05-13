@@ -15,6 +15,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 
 # Alliance Auth
 from allianceauth.authentication.models import CharacterOwnership
@@ -124,7 +125,7 @@ class BaseFilter(models.Model):
         :return:
         """
 
-        raise NotImplementedError("Please Create a filter!")
+        raise NotImplementedError(_("Please Create a filter!"))
 
     def audit_filter(self, users):
         """
@@ -135,7 +136,7 @@ class BaseFilter(models.Model):
         :rtype:
         """
 
-        raise NotImplementedError("Please Create an audit function!")
+        raise NotImplementedError(_("Please Create an audit function!"))
 
 
 class ActivityFilter(BaseFilter):
@@ -154,7 +155,13 @@ class ActivityFilter(BaseFilter):
         :return:
         """
 
-        return f"Activity [days={self.inactivity_threshold}]"
+        inactivity_threshold = ngettext(
+            f"{self.inactivity_threshold:d} day",
+            f"{self.inactivity_threshold:d} days",
+            self.inactivity_threshold,
+        )
+
+        return _(f"Activity [Last {inactivity_threshold}]")
 
     def process_filter(self, user: User):
         """
@@ -207,7 +214,7 @@ class ActivityFilter(BaseFilter):
                 for char_user, char_list in chars.items():
                     active_characters = ", ".join(char_list)
                     output[char_user] = {
-                        "message": f"Active Characters: {active_characters}",
+                        "message": _(f"Active Characters: {active_characters}"),
                         "check": True,
                     }
 
@@ -230,7 +237,13 @@ class AgeFilter(BaseFilter):
         :return:
         """
 
-        return f"Character Age [days={self.age_threshold}]"
+        age_threshold = ngettext(
+            f"{self.age_threshold:d} day",
+            f"{self.age_threshold:d} days",
+            self.age_threshold,
+        )
+
+        return _(f"Character Age [{age_threshold}]")
 
     def process_filter(self, user: User):
         """
@@ -295,7 +308,7 @@ class AssetFilter(BaseFilter):
         :return:
         """
 
-        return "Member Audit Asset"
+        return _("Member Audit Asset")
 
     def process_filter(self, user: User):
         """
@@ -364,7 +377,7 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         :return:
         """
 
-        return "Compliance"
+        return _("Compliance")
 
     def process_filter(self, user: User):
         """
@@ -391,7 +404,9 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         for user in users:
             if General.compliant_users().filter(pk=user.pk).exists():
                 output[user.pk] = {
-                    "message": f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
+                    "message": _(
+                        f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
+                    ),
                     "check": True,
                 }
 
@@ -414,10 +429,15 @@ class SkillPointFilter(BaseFilter):
         :return:
         """
 
-        return (
-            "Member Audit Skill Points "
-            f"[sp={humanize.intword(self.skill_point_threshold)}]"
+        sp_threshold = humanize.intword(self.skill_point_threshold)
+
+        skill_point_threshold = ngettext(
+            f"{sp_threshold} skill point",
+            f"{sp_threshold} skill points",
+            self.skill_point_threshold,
         )
+
+        return _(f"Member Audit Skill Points [{skill_point_threshold}]")
 
     def process_filter(self, user: User):
         """
@@ -481,7 +501,7 @@ class SkillSetFilter(BaseFilter):
         :return:
         """
 
-        return "Member Audit Skill Set"
+        return _("Member Audit Skill Set")
 
     def process_filter(self, user: User):
         """

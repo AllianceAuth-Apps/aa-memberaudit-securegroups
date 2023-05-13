@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-12 21:54+0200\n"
+"POT-Creation-Date: 2023-05-13 12:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,28 +17,106 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: admin.py:49
+#, python-brace-format
+msgid "{inactivity_threshold:d} day"
+msgid_plural "{inactivity_threshold:d} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: apps.py:19
+#, python-brace-format
+msgid "Member Audit Secure Groups Integration v{__version__}"
+msgstr ""
+
 #: models.py:102
 msgid "The filter description that is shown to end users."
+msgstr ""
+
+#: models.py:127
+msgid "Please Create a filter!"
+msgstr ""
+
+#: models.py:138
+msgid "Please Create an audit function!"
 msgstr ""
 
 #: models.py:147
 msgid "Maximum allowable inactivity, in <strong>days</strong>."
 msgstr ""
 
-#: models.py:223
+#: models.py:158
+#, python-brace-format
+msgid "{self.inactivity_threshold:d} day"
+msgid_plural "{self.inactivity_threshold:d} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: models.py:163
+#, python-brace-format
+msgid "Activity [Last {inactivity_threshold}]"
+msgstr ""
+
+#: models.py:216
+#, python-brace-format
+msgid "Active Characters: {active_characters}"
+msgstr ""
+
+#: models.py:229
 msgid "Minimum allowable age, in <strong>days</strong>."
 msgstr ""
 
-#: models.py:288
+#: models.py:240
+#, python-brace-format
+msgid "{self.age_threshold:d} day"
+msgid_plural "{self.age_threshold:d} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: models.py:245
+#, python-brace-format
+msgid "Character Age [{age_threshold}]"
+msgstr ""
+
+#: models.py:300
 msgid "User must possess <strong>one</strong> of the selected assets."
 msgstr ""
 
+#: models.py:310
+msgid "Member Audit Asset"
+msgstr ""
+
+#: models.py:379
+msgid "Compliance"
+msgstr ""
+
 #: models.py:407
+#, python-brace-format
+msgid "All characters have been added to {MEMBERAUDIT_APP_NAME}"
+msgstr ""
+
+#: models.py:421
 msgid "Minimum allowable skillpoints."
 msgstr ""
 
-#: models.py:472
+#: models.py:434
+#, python-brace-format
+msgid "{sp_threshold} skill point"
+msgid_plural "{sp_threshold} skill points"
+msgstr[0] ""
+msgstr[1] ""
+
+#: models.py:439
+#, python-brace-format
+msgid "Member Audit Skill Points [{skill_point_threshold}]"
+msgstr ""
+
+#: models.py:491
 msgid ""
 "Users must possess all of the skills in <strong>one</strong> of the selected "
 "skillsets."
+msgstr ""
+
+#: models.py:503
+msgid "Member Audit Skill Set"
 msgstr ""
