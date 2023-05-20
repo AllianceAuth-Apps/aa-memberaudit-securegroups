@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 12:29+0200\n"
-"PO-Revision-Date: 2023-05-13 10:43+0000\n"
+"PO-Revision-Date: 2023-05-19 23:43+0000\n"
 "Last-Translator: \"H. Peter Pfeufer\" <info@ppfeufer.de>\n"
 "Language-Team: German <https://weblate.ppfeufer.de/projects/"
 "alliance-auth-apps/aa-member-audit-secure-groups-integration/de/>\n"
@@ -32,7 +32,7 @@ msgstr "Member Audit Secure Groups Integration v{__version__}"
 
 #: models.py:102
 msgid "The filter description that is shown to end users."
-msgstr "Die Filterbeschreibung, die den Benutzern angezeigt wird."
+msgstr "Die Filterbeschreibung welche den Benutzern angezeigt wird."
 
 #: models.py:127
 msgid "Please Create a filter!"
