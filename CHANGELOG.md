@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [In Development]
 
+### Fixed
+
+- Migration dependency for Member Audit >= 2.0.0
+
+### Changed
+
+- Dependencies:
+    - aa-memberaudit>=2.0.0
+    - allianceauth>=3.0.0
+    - allianceauth-securegroups>=0.5.1
+
 
 ## [0.2.0] - 2023-02-27
 

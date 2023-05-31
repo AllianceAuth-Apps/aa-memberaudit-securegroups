@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("eveuniverse", "0004_effect_longer_name"),
-        ("memberaudit", "0003_stats_n_skillset_autocomplete"),
+        ("memberaudit", "0001_initial_new"),
     ]
 
     operations = [
