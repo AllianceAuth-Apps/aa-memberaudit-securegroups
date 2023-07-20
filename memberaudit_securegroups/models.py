@@ -19,14 +19,16 @@ from django.utils.translation import ngettext
 
 # Alliance Auth
 from allianceauth.authentication.models import CharacterOwnership
-from allianceauth.eveonline.models import EveCharacter
 
 # Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, General, SkillSet
+from memberaudit.models import Character, CharacterAsset, SkillSet
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
+
+# Memberaudit Securegroups
+from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime:
@@ -393,9 +395,9 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         :return:
         """
 
-        is_compliant = General.compliant_users().filter(pk=user.pk).exists()
+        compliance_check = MemberAuditChecks.compliance(user=user)
 
-        return is_compliant
+        return compliance_check["is_compliant"]
 
     def audit_filter(self, users):
         """
@@ -416,7 +418,9 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         )
 
         for user in users:
-            if General.compliant_users().filter(pk=user.pk).exists():
+            compliance_check = MemberAuditChecks.compliance(user=user)
+
+            if compliance_check["is_compliant"]:
                 output[user.pk] = {
                     "message": _(
                         f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
@@ -424,37 +428,19 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                     "check": True,
                 }
             else:
-                owned_chars_query = (
-                    EveCharacter.objects.filter(character_ownership__user=user)
-                    .select_related(
-                        "memberaudit_character",
-                        "memberaudit_character__location",
-                        "memberaudit_character__location__eve_solar_system",
-                        "memberaudit_character__location__eve_solar_system__eve_constellation__eve_region",
-                        "memberaudit_character__skillpoints",
-                        "memberaudit_character__unread_mail_count",
-                        "memberaudit_character__wallet_balance",
-                    )
-                    .order_by("character_name")
-                )
-
-                unregistered_chars = []
-
-                for eve_character in owned_chars_query:
-                    try:
-                        eve_character.memberaudit_character
-                    except AttributeError:
-                        unregistered_chars.append(eve_character.character_name)
+                unregistered_chars = compliance_check["unregistered_chars"]
 
                 missing_characters_message = ngettext(
                     "Missing character: ",
                     "Missing characters: ",
-                    len(unregistered_chars),
+                    unregistered_chars.count(),
                 )
 
                 output[user.pk] = {
                     "message": missing_characters_message
-                    + ", ".join(sorted(unregistered_chars)),
+                    + ", ".join(
+                        str(char.character_name) for char in unregistered_chars
+                    ),
                     "check": False,
                 }
 
