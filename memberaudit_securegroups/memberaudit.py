@@ -1,8 +1,6 @@
 """
 Wrapper for checks in AA Member Audit
 """
-# Standard Library
-from typing import Any
 
 # Django
 from django.contrib.auth.models import User
@@ -20,7 +18,7 @@ class MemberAuditChecks:  # pylint: disable=too-few-public-methods
     """
 
     @staticmethod
-    def compliance(user: User) -> dict[str, Any]:
+    def compliance(user: User) -> dict:
         """
         Check user compliance with AA Member Audit and return probably missing characters
         :param user:
