@@ -6,11 +6,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-13 12:29+0200\n"
+"POT-Creation-Date: 2023-07-21 11:31+0200\n"
 "PO-Revision-Date: 2023-05-13 16:20+0000\n"
 "Last-Translator: Nikolay <nick.postnikov@gmail.com>\n"
-"Language-Team: Russian <https://weblate.ppfeufer.de/projects/"
-"alliance-auth-apps/aa-member-audit-secure-groups-integration/ru/>\n"
+"Language-Team: Russian <https://weblate.ppfeufer.de/projects/alliance-auth-"
+"apps/aa-member-audit-secure-groups-integration/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -28,28 +28,28 @@ msgstr[1] "{inactivity_threshold:d} дня"
 msgstr[2] "{inactivity_threshold:d} дней"
 msgstr[3] "{inactivity_threshold:d} день"
 
-#: apps.py:19
+#: apps.py:20
 #, python-brace-format
 msgid "Member Audit Secure Groups Integration v{__version__}"
 msgstr "Интеграция аудита членов безопасных групп v{__version__}"
 
-#: models.py:102
+#: models.py:106
 msgid "The filter description that is shown to end users."
 msgstr "Описание фильтра, отображаемое пользователю."
 
-#: models.py:127
+#: models.py:131
 msgid "Please Create a filter!"
 msgstr "Пожалуйста, создайте фильтр!"
 
-#: models.py:138
+#: models.py:142
 msgid "Please Create an audit function!"
 msgstr "Пожалуйста, создайте функцию аудита!"
 
-#: models.py:147
+#: models.py:151
 msgid "Maximum allowable inactivity, in <strong>days</strong>."
 msgstr "Максимальное допустимое время неактивности, в <strong>днях</strong>."
 
-#: models.py:158
+#: models.py:162
 #, python-brace-format
 msgid "{self.inactivity_threshold:d} day"
 msgid_plural "{self.inactivity_threshold:d} days"
@@ -58,21 +58,26 @@ msgstr[1] "{self.inactivity_threshold:d} дня"
 msgstr[2] "{self.inactivity_threshold:d} дней"
 msgstr[3] "{self.inactivity_threshold:d} день"
 
-#: models.py:163
+#: models.py:167
 #, python-brace-format
 msgid "Activity [Last {inactivity_threshold}]"
 msgstr "Активность [{inactivity_threshold}]"
 
-#: models.py:216
-#, python-brace-format
-msgid "Active Characters: {active_characters}"
-msgstr "Активные персонажи: {active_characters}"
+#: models.py:219
+#, fuzzy
+#| msgid "Active Characters: {active_characters}"
+msgid "Active Character: "
+msgid_plural "Active Characters: "
+msgstr[0] "Активные персонажи: {active_characters}"
+msgstr[1] "Активные персонажи: {active_characters}"
+msgstr[2] "Активные персонажи: {active_characters}"
+msgstr[3] "Активные персонажи: {active_characters}"
 
-#: models.py:229 models.py:223
+#: models.py:236
 msgid "Minimum allowable age, in <strong>days</strong>."
 msgstr "Минимальный допустимый возраст, в <strong>днях</strong>."
 
-#: models.py:240
+#: models.py:247
 #, python-brace-format
 msgid "{self.age_threshold:d} day"
 msgid_plural "{self.age_threshold:d} days"
@@ -81,34 +86,48 @@ msgstr[1] "{self.age_threshold:d} дня"
 msgstr[2] "{self.age_threshold:d} дней"
 msgstr[3] "{self.age_threshold:d} день"
 
-#: models.py:245
+#: models.py:252
 #, python-brace-format
 msgid "Character Age [{age_threshold}]"
 msgstr "Возраст персонажа [{age_threshold}]"
 
-#: models.py:300 models.py:288
+#: models.py:310
 msgid "User must possess <strong>one</strong> of the selected assets."
 msgstr ""
 "Пользователь должен владеть <strong>одним</strong> из выбранных ассетов."
 
-#: models.py:310
+#: models.py:320
 msgid "Member Audit Asset"
 msgstr "Аудит ассетов"
 
-#: models.py:379
+#: models.py:389
 msgid "Compliance"
 msgstr "Согласие"
 
-#: models.py:407
+#: models.py:414
+#, fuzzy, python-brace-format
+#| msgid "All characters have been added to {MEMBERAUDIT_APP_NAME}"
+msgid "Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
+msgstr "Все персонажи были добавлены в {MEMBERAUDIT_APP_NAME}"
+
+#: models.py:426
 #, python-brace-format
 msgid "All characters have been added to {MEMBERAUDIT_APP_NAME}"
 msgstr "Все персонажи были добавлены в {MEMBERAUDIT_APP_NAME}"
 
-#: models.py:421 models.py:407
+#: models.py:434
+msgid "Missing character: "
+msgid_plural "Missing characters: "
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: models.py:456
 msgid "Minimum allowable skillpoints."
 msgstr "Минимально допустимое количество очков опыта."
 
-#: models.py:434
+#: models.py:469
 #, python-brace-format
 msgid "{sp_threshold} skill point"
 msgid_plural "{sp_threshold} skill points"
@@ -117,12 +136,12 @@ msgstr[1] "{sp_threshold} очка опыта"
 msgstr[2] "{sp_threshold} очков опыта"
 msgstr[3] "{sp_threshold} очко опыта"
 
-#: models.py:439
+#: models.py:474
 #, python-brace-format
 msgid "Member Audit Skill Points [{skill_point_threshold}]"
 msgstr "Аудит очков опыта [{skill_point_threshold}]"
 
-#: models.py:491 models.py:472
+#: models.py:529
 msgid ""
 "Users must possess all of the skills in <strong>one</strong> of the selected "
 "skillsets."
@@ -130,6 +149,6 @@ msgstr ""
 "Пользователь должен обладать всеми умениями в <strong>одном</strong> из "
 "выбранных наборов."
 
-#: models.py:503
+#: models.py:541
 msgid "Member Audit Skill Set"
 msgstr "Аудит наборов умений"
