@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-07-21 11:31+0200\n"
-"PO-Revision-Date: 2023-05-19 23:43+0000\n"
-"Last-Translator: \"H. Peter Pfeufer\" <info@ppfeufer.de>\n"
-"Language-Team: German <https://weblate.ppfeufer.de/projects/alliance-auth-"
-"apps/aa-member-audit-secure-groups-integration/de/>\n"
+"PO-Revision-Date: 2023-07-22 09:39+0000\n"
+"Last-Translator: Peter Pfeufer <info@ppfeufer.de>\n"
+"Language-Team: German <https://weblate.ppfeufer.de/projects/"
+"alliance-auth-apps/aa-member-audit-secure-groups-integration/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.17\n"
+"X-Generator: Weblate 4.18.2\n"
 
 #: admin.py:49
 #, python-brace-format
@@ -59,12 +59,10 @@ msgid "Activity [Last {inactivity_threshold}]"
 msgstr "Aktivität [Letzte {inactivity_threshold}]"
 
 #: models.py:219
-#, fuzzy
-#| msgid "Active Characters: {active_characters}"
 msgid "Active Character: "
 msgid_plural "Active Characters: "
-msgstr[0] "Aktive Charaktere: {active_characters}"
-msgstr[1] "Aktive Charaktere: {active_characters}"
+msgstr[0] "Aktiver Charakter: "
+msgstr[1] "Aktive Charaktere: "
 
 #: models.py:236
 msgid "Minimum allowable age, in <strong>days</strong>."
@@ -96,10 +94,9 @@ msgid "Compliance"
 msgstr "Compliance"
 
 #: models.py:414
-#, fuzzy, python-brace-format
-#| msgid "All characters have been added to {MEMBERAUDIT_APP_NAME}"
+#, python-brace-format
 msgid "Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
-msgstr "Alle Charaktere wurden zu {MEMBERAUDIT_APP_NAME} hinzugefügt"
+msgstr "Nicht alle Charaktere wurden zu {MEMBERAUDIT_APP_NAME} hinzugefügt"
 
 #: models.py:426
 #, python-brace-format
@@ -109,8 +106,8 @@ msgstr "Alle Charaktere wurden zu {MEMBERAUDIT_APP_NAME} hinzugefügt"
 #: models.py:434
 msgid "Missing character: "
 msgid_plural "Missing characters: "
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Fehlender Charakter: "
+msgstr[1] "Fehlende Charaktere: "
 
 #: models.py:456
 msgid "Minimum allowable skillpoints."
