@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [In Development]
 
+
+## [0.4.0] - 2023-08-15
+
 ### Added
 
-- Names of missing characters when compliance filter fails
+- Names of missing characters when the compliance filter fails
+- Spanish translation
 
 ### Changed
 
