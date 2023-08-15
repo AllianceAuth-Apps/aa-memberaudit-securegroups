@@ -22,10 +22,13 @@ from allianceauth.authentication.models import CharacterOwnership
 
 # Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, General, SkillSet
+from memberaudit.models import Character, CharacterAsset, SkillSet
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
+
+# Memberaudit Securegroups
+from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime:
@@ -212,9 +215,12 @@ class ActivityFilter(BaseFilter):
                     chars[char.user.pk].append(char.eve_character.character_name)
 
                 for char_user, char_list in chars.items():
-                    active_characters = ", ".join(char_list)
+                    message = ngettext(
+                        "Active Character: ", "Active Characters: ", len(char_list)
+                    )
+
                     output[char_user] = {
-                        "message": _(f"Active Characters: {active_characters}"),
+                        "message": message + ", ".join(sorted(char_list)),
                         "check": True,
                     }
 
@@ -286,7 +292,10 @@ class AgeFilter(BaseFilter):
                     chars[char.user.pk].append(char.eve_character.character_name)
 
                 for char_user, char_list in chars.items():
-                    output[char_user] = {"message": ", ".join(char_list), "check": True}
+                    output[char_user] = {
+                        "message": ", ".join(sorted(char_list)),
+                        "check": True,
+                    }
 
         return output
 
@@ -360,7 +369,7 @@ class AssetFilter(BaseFilter):
         output = defaultdict(lambda: {"message": "", "check": False})
 
         for character, char_list in chars.items():
-            output[character] = {"message": ", ".join(char_list), "check": True}
+            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
 
         return output
 
@@ -386,9 +395,9 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         :return:
         """
 
-        is_compliant = General.compliant_users().filter(pk=user.pk).exists()
+        compliance_check = MemberAuditChecks.compliance(user=user)
 
-        return is_compliant
+        return compliance_check["is_compliant"]
 
     def audit_filter(self, users):
         """
@@ -399,15 +408,40 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         :rtype:
         """
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        output = defaultdict(
+            lambda: {
+                "message": _(
+                    f"Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
+                ),
+                "check": False,
+            }
+        )
 
         for user in users:
-            if General.compliant_users().filter(pk=user.pk).exists():
+            compliance_check = MemberAuditChecks.compliance(user=user)
+
+            if compliance_check["is_compliant"]:
                 output[user.pk] = {
                     "message": _(
                         f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
                     ),
                     "check": True,
+                }
+            else:
+                unregistered_chars = compliance_check["unregistered_chars"]
+
+                missing_characters_message = ngettext(
+                    "Missing character: ",
+                    "Missing characters: ",
+                    unregistered_chars.count(),
+                )
+
+                output[user.pk] = {
+                    "message": missing_characters_message
+                    + ", ".join(
+                        str(char.character_name) for char in unregistered_chars
+                    ),
+                    "check": False,
                 }
 
         return output
@@ -476,7 +510,10 @@ class SkillPointFilter(BaseFilter):
                     chars[char.user.pk].append(char.eve_character.character_name)
 
                 for char_user, char_list in chars.items():
-                    output[char_user] = {"message": ", ".join(char_list), "check": True}
+                    output[char_user] = {
+                        "message": ", ".join(sorted(char_list)),
+                        "check": True,
+                    }
 
         return output
 
@@ -547,7 +584,7 @@ class SkillSetFilter(BaseFilter):
 
                         for char_user, char_list in chars.items():
                             output[char_user] = {
-                                "message": ", ".join(char_list),
+                                "message": ", ".join(sorted(char_list)),
                                 "check": True,
                             }
 
