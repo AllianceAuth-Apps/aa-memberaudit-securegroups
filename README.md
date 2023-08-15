@@ -9,6 +9,23 @@ This is an integration between [Member Audit](https://gitlab.com/ErikKalkoken/aa
 ![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)
 ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
 
+
+---
+
+<!-- TOC -->
+* [Member Audit Secure Groups Integration for Alliance Auth](#member-audit-secure-groups-integration-for-alliance-auth)
+  * [Features](#features)
+  * [Installation](#installation)
+    * [Requirements](#requirements)
+    * [Step 1: Install the Package](#step-1-install-the-package)
+    * [Step 2: Config](#step-2-config)
+    * [Step 3: Finalize App Installation](#step-3-finalize-app-installation)
+  * [Filters](#filters)
+<!-- TOC -->
+
+---
+
+
 ## Features
 
 - Activity Filter
@@ -18,25 +35,23 @@ This is an integration between [Member Audit](https://gitlab.com/ErikKalkoken/aa
 - Skill Set Filter
 - Skill Point Filter
 
-# Installation
+## Installation
 
-## Requirements
+### Requirements
 
 This integration needs [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) and [Secure Groups](https://github.com/pvyParts/allianceauth-secure-groups) to function. Please make sure they are installed before continuing.
 
-## Steps
-
-### Step 1 - Install the Package
+### Step 1: Install the Package
 
 Make sure you are in the virtual environment (venv) of your Alliance Auth installation. Then install the newest release from PyPI:
 
 `pip install aa-memberaudit-securegroups`
 
-### Step 2 - Config
+### Step 2: Config
 
 Add `memberaudit_securegroups` to your `INSTALLED_APPS`.
 
-### Step 3 - Finalize App Installation
+### Step 3: Finalize App Installation
 
 Run migrations:
 
@@ -46,7 +61,7 @@ python manage.py migrate
 
 Restart your supervisor services for Auth
 
-# Filters
+## Filters
 
 | Filter Name        | Matches if...                                                           |
 |--------------------|-------------------------------------------------------------------------|

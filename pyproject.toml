@@ -1,6 +1,54 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aa-memberaudit-securegroups"
+version = "0.4.0"
+description = "Member Audit Secure Groups integration for Alliance Auth"
+readme = "README.md"
+license = "GPL-3.0"
+requires-python = "~=3.8"
+authors = [
+    { name = "Rebecca Murphy", email = "rebecca@rcmurphy.me" },
 ]
-build-backend = "setuptools.build_meta"
+maintainers = [
+    { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
+]
+keywords = [
+    "allianceauth",
+    "memberaudit",
+    "securegroups",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+dependencies = [
+    "aa-memberaudit>=2.0.0",
+    "allianceauth-securegroups>=0.5.1",
+    "allianceauth>=3.0.0",
+]
+
+[project.urls]
+Homepage = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/"
+Documentation = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/README.md"
+Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git"
+Changelog = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md"
+Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
+
+[tool.hatch.build]
+include = [
+    "/memberaudit_securegroups",
+]

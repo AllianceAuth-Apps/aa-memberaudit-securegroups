@@ -13,7 +13,7 @@ before_script:
 
 pre-commit:
   stage: review
-  image: python:3.8-bullseye
+  image: python:3.10-bullseye
   variables:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   cache:
@@ -38,17 +38,20 @@ pre-commit:
   stage: test
   image: python:3.10-buster
 
+.test-py311:
+  needs: [pre-commit]
+  stage: test
+  image: python:3.11-buster
+
 test-38-django40:
   extends: .test-py38
   script:
     - tox -e py38-django40
-    - bash <(curl -s https://codecov.io/bash)
 
 test-39-django40:
   extends: .test-py39
   script:
     - tox -e py39-django40
-    - bash <(curl -s https://codecov.io/bash)
 
 test-310-django40:
   extends: .test-py310
@@ -56,8 +59,13 @@ test-310-django40:
     - tox -e py310-django40
     - bash <(curl -s https://codecov.io/bash)
 
+test-311-django40:
+  extends: .test-py311
+  script:
+    - tox -e py311-django40
+
 build-test:
-  needs: [test-38-django40, test-39-django40, test-310-django40]
+  needs: [test-38-django40, test-39-django40, test-310-django40, test-311-django40]
   stage: test
   image: python:3.10-bullseye
 

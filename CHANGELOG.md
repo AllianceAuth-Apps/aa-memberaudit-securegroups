@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [In Development]
 
 
+## [0.4.0] - 2023-08-15
+
+### Added
+
+- Names of missing characters when the compliance filter fails
+- Spanish translation
+
+### Changed
+
+- Moved the build process to PEP 621 / pyproject.toml
+- Character names sorted alphabetically in all filters
+
+
 ## [0.3.0] - 2023-05-31
 
 ### Fixed
@@ -17,9 +30,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Dependencies:
-    - aa-memberaudit>=2.0.0
-    - allianceauth>=3.0.0
-    - allianceauth-securegroups>=0.5.1
+    - `aa-memberaudit>=2.0.0`
+    - `allianceauth>=3.0.0`
+    - `allianceauth-securegroups>=0.5.1`
 
 
 ## [0.2.0] - 2023-02-27
@@ -57,19 +70,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.1.0a3] - 2021-01-16
 
 ### Fixed
+
 - Bug involving skillpoint filter
 
 
 ## [0.1.0a2] - 2021-01-05
 
 ### Added
+
 - Activity Filter
 - Age Filter
 - Skill Point Filter
 
 ### Changed
+
 - Improved Admin Panel
 
+
 ## [0.1.0a1] - 2021-01-05
+
 ### Added
+
 - Initial Release
