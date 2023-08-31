@@ -5,10 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [In Development]
+## \[In Development\]
 
-
-## [0.4.0] - 2023-08-15
+## \[0.4.0\] - 2023-08-15
 
 ### Added
 
@@ -20,8 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Moved the build process to PEP 621 / pyproject.toml
 - Character names sorted alphabetically in all filters
 
-
-## [0.3.0] - 2023-05-31
+## \[0.3.0\] - 2023-05-31
 
 ### Fixed
 
@@ -30,23 +28,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Dependencies:
-    - `aa-memberaudit>=2.0.0`
-    - `allianceauth>=3.0.0`
-    - `allianceauth-securegroups>=0.5.1`
+  - `aa-memberaudit>=2.0.0`
+  - `allianceauth>=3.0.0`
+  - `allianceauth-securegroups>=0.5.1`
 
-
-## [0.2.0] - 2023-02-27
+## \[0.2.0\] - 2023-02-27
 
 ### Added
 
 - Secure Group's audit filter to the filters for better visual feedback
 
-
-## [0.1.0] - 2022-08-06
+## \[0.1.0\] - 2022-08-06
 
 ### Fixed
 
-- Compatibility to the Member Audit >=1.15.1 and its changes to the ``Character`` model
+- Compatibility to the Member Audit >=1.15.1 and its changes to the `Character` model
 
 ### Added
 
@@ -66,15 +62,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Unused files
 
-
-## [0.1.0a3] - 2021-01-16
+## \[0.1.0a3\] - 2021-01-16
 
 ### Fixed
 
 - Bug involving skillpoint filter
 
-
-## [0.1.0a2] - 2021-01-05
+## \[0.1.0a2\] - 2021-01-05
 
 ### Added
 
@@ -86,8 +80,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Improved Admin Panel
 
-
-## [0.1.0a1] - 2021-01-05
+## \[0.1.0a1\] - 2021-01-05
 
 ### Added
 
