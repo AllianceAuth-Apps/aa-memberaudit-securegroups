@@ -8,6 +8,7 @@ This is an integration between [Member Audit](https://gitlab.com/ErikKalkoken/aa
 ![django](https://img.shields.io/pypi/djversions/aa-memberaudit-securegroups?label=django)
 ![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)
 ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Translation status](https://weblate.ppfeufer.de/widget/alliance-auth-apps/aa-member-audit-secure-groups-integration/svg-badge.svg)](https://weblate.ppfeufer.de/engage/alliance-auth-apps/)
 
 ______________________________________________________________________
 
@@ -21,6 +22,8 @@ ______________________________________________________________________
     - [Step 2: Config](#step-2-config)
     - [Step 3: Finalize App Installation](#step-3-finalize-app-installation)
   - [Filters](#filters)
+  - [Changelog](#changelog)
+  - [Translation Status](#translation-status)
 
 <!-- mdformat-toc end -->
 
@@ -71,3 +74,18 @@ Restart your supervisor services for Auth
 | Compliance Filter  | User has *all* characters registered on Member Audit                    |
 | Skill Point Filter | User has *at least one* character with at least X skill points          |
 | Skill Set Filter   | User has *at least one* character with *any of* the selected skill sets |
+
+## Changelog<a name="changelog"></a>
+
+See [CHANGELOG.md](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md)
+
+## Translation Status<a name="translation-status"></a>
+
+[![Translation status](https://weblate.ppfeufer.de/widget/alliance-auth-apps/aa-member-audit-secure-groups-integration/multi-auto.svg)](https://weblate.ppfeufer.de/engage/alliance-auth-apps/)
+
+Do you want to help translate this app into your language or improve the existing
+translation? - [Join our team of translators][weblate engage]!
+
+<!-- Inline Links -->
+
+[weblate engage]: https://weblate.ppfeufer.de/engage/alliance-auth-apps/ "Weblate Translations"
