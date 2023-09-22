@@ -128,7 +128,7 @@ class BaseFilter(models.Model):
         :return:
         """
 
-        raise NotImplementedError(_("Please Create a filter!"))
+        raise NotImplementedError(_("Please create a filter!"))
 
     def audit_filter(self, users):
         """
@@ -139,7 +139,7 @@ class BaseFilter(models.Model):
         :rtype:
         """
 
-        raise NotImplementedError(_("Please Create an audit function!"))
+        raise NotImplementedError(_("Please create an audit function!"))
 
 
 class ActivityFilter(BaseFilter):
@@ -216,7 +216,7 @@ class ActivityFilter(BaseFilter):
 
                 for char_user, char_list in chars.items():
                     message = ngettext(
-                        "Active Character: ", "Active Characters: ", len(char_list)
+                        "Active character: ", "Active characters: ", len(char_list)
                     )
 
                     output[char_user] = {
@@ -249,7 +249,7 @@ class AgeFilter(BaseFilter):
             self.age_threshold,
         )
 
-        return _(f"Character Age [{age_threshold}]")
+        return _(f"Character age [{age_threshold}]")
 
     def process_filter(self, user: User):
         """
@@ -453,7 +453,7 @@ class SkillPointFilter(BaseFilter):
     """
 
     skill_point_threshold = models.PositiveBigIntegerField(
-        help_text=_("Minimum allowable skillpoints.")
+        help_text=_("Minimum allowable skill points.")
     )
 
     @property
@@ -527,7 +527,7 @@ class SkillSetFilter(BaseFilter):
         SkillSet,
         help_text=_(
             "Users must possess all of the skills in <strong>one</strong> of the "
-            "selected skillsets."
+            "selected skill sets."
         ),
     )
 
