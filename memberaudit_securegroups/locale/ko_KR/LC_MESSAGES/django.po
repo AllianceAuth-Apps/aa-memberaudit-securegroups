@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-09-22 23:52+0200\n"
-"PO-Revision-Date: 2023-08-29 14:40+0000\n"
-"Last-Translator: Author50CO <tkddlschry@gmail.com>\n"
-"Language-Team: Korean <https://weblate.ppfeufer.de/projects/alliance-auth-"
-"apps/aa-member-audit-secure-groups-integration/ko/>\n"
+"PO-Revision-Date: 2023-09-24 13:14+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Korean <https://weblate.ppfeufer.de/projects/"
+"alliance-auth-apps/aa-member-audit-secure-groups-integration/ko/>\n"
 "Language: ko_KR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #: admin.py:49
 #, python-brace-format
@@ -86,9 +86,8 @@ msgstr "캐릭터 나이 [{age_threshold}]"
 
 #: models.py:310
 msgid "User must possess <strong>one</strong> of the selected assets."
-msgstr ""
-"사용자는 선택된 아이템 중 최소 <strong>한 개</strong> 이상의 아이템을 소유하"
-"고 있어야 합니다."
+msgstr "사용자는 선택된 아이템 중 최소 <strong>한 개</strong> 이상의 아이템을 "
+"소유하고 있어야 합니다."
 
 #: models.py:320
 msgid "Member Audit Asset"
@@ -138,8 +137,7 @@ msgstr "스킬 포인트별 멤버 관리 [{skill_point_threshold}]"
 msgid ""
 "Users must possess all of the skills in <strong>one</strong> of the selected "
 "skill sets."
-msgstr ""
-"사용자는 선택된 스킬 셋 중 <strong>한 개</strong> 이상의 스킬 셋을 완료해야 "
+msgstr "사용자는 선택된 스킬 셋 중 <strong>한 개</strong> 이상의 스킬 셋을 완료해야 "
 "합니다."
 
 #: models.py:541
