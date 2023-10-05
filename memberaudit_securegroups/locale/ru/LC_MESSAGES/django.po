@@ -2,15 +2,16 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Nikolay <nick.postnikov@gmail.com>, 2023.
+# Max <mark25@inbox.ru>, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-09-24 15:31+0200\n"
-"PO-Revision-Date: 2023-09-24 13:14+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Russian <https://weblate.ppfeufer.de/projects/alliance-auth-"
-"apps/aa-member-audit-secure-groups-integration/ru/>\n"
+"PO-Revision-Date: 2023-10-03 17:43+0000\n"
+"Last-Translator: Max <mark25@inbox.ru>\n"
+"Language-Team: Russian <https://weblate.ppfeufer.de/projects/"
+"alliance-auth-apps/aa-member-audit-secure-groups-integration/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -38,14 +39,10 @@ msgid "The filter description that is shown to end users."
 msgstr "Описание фильтра, отображаемое пользователю."
 
 #: models.py:131
-#, fuzzy
-#| msgid "Please Create a filter!"
 msgid "Please create a filter!"
 msgstr "Пожалуйста, создайте фильтр!"
 
 #: models.py:142
-#, fuzzy
-#| msgid "Please Create an audit function!"
 msgid "Please create an audit function!"
 msgstr "Пожалуйста, создайте функцию аудита!"
 
@@ -68,15 +65,12 @@ msgid "Activity [Last {inactivity_threshold}]"
 msgstr "Активность [{inactivity_threshold}]"
 
 #: models.py:219
-#, fuzzy
-#| msgid "Active Character: "
-#| msgid_plural "Active Characters: "
 msgid "Active character: "
 msgid_plural "Active characters: "
-msgstr[0] "Активные персонажи: "
+msgstr[0] "Активный персонаж: "
 msgstr[1] "Активные персонажи: "
 msgstr[2] "Активные персонажи: "
-msgstr[3] "Активный персонаж: "
+msgstr[3] "Активные персонажи: "
 
 #: models.py:236
 msgid "Minimum allowable age, in <strong>days</strong>."
@@ -92,8 +86,7 @@ msgstr[2] "{self.age_threshold:d} дней"
 msgstr[3] "{self.age_threshold:d} день"
 
 #: models.py:252
-#, fuzzy, python-brace-format
-#| msgid "Character Age [{age_threshold}]"
+#, python-brace-format
 msgid "Character age [{age_threshold}]"
 msgstr "Возраст персонажа [{age_threshold}]"
 
@@ -129,8 +122,6 @@ msgstr[2] "Отсутствующие персонажи: "
 msgstr[3] "Отсутствующий персонаж: "
 
 #: models.py:456
-#, fuzzy
-#| msgid "Minimum allowable skillpoints."
 msgid "Minimum allowable skill points."
 msgstr "Минимально допустимое количество очков опыта."
 
@@ -149,10 +140,6 @@ msgid "Member Audit Skill Points [{skill_point_threshold}]"
 msgstr "Аудит очков опыта [{skill_point_threshold}]"
 
 #: models.py:529
-#, fuzzy
-#| msgid ""
-#| "Users must possess all of the skills in <strong>one</strong> of the "
-#| "selected skillsets."
 msgid ""
 "Users must possess all of the skills in <strong>one</strong> of the selected "
 "skill sets."
