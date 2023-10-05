@@ -73,7 +73,7 @@ class AssetFilterAdmin(admin.ModelAdmin):
     """
 
     list_display = ("description",)
-    filter_horizontal = ("assets",)
+    autocomplete_fields = ["assets"]
 
 
 @admin.register(ComplianceFilter)
