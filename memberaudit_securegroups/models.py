@@ -130,7 +130,7 @@ class BaseFilter(models.Model):
         :return:
         """
 
-        raise NotImplementedError(_("Please create a filter!"))
+        raise NotImplementedError("Please create a filter!")
 
     def audit_filter(self, users):
         """
@@ -141,7 +141,7 @@ class BaseFilter(models.Model):
         :rtype:
         """
 
-        raise NotImplementedError(_("Please create an audit function!"))
+        raise NotImplementedError("Please create an audit function!")
 
 
 class ActivityFilter(BaseFilter):
