@@ -194,5 +194,37 @@ class TestCorporationRoleFilter(TestCase):
         # when/then
         self.assertFalse(filter.process_filter(self.user))
 
+    def test_should_return_audit_data_for_two_matching_users(self):
+        # given
+        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
+        filter.corporations.add(self.corporation_2001)
+        filter.corporations.add(self.corporation_2101)
+        create_character_role(
+            character=self.character,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        create_character_role(
+            character=character_1002,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        character_1101 = create_memberaudit_character(1101)
+        user_2 = character_1101.character_ownership.user
+        create_character_role(
+            character=character_1101,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        # when
+        result = filter.audit_filter([self.user, user_2])
+        # then
+        expected = {
+            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
+            user_2.id: {"message": "Lex Luther", "check": True},
+        }
+        self.assertDictEqual(result, expected)
+
     def test_should_not_allow_filter_without_defining_at_least_one_corporation(self):
         ...

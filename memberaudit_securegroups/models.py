@@ -5,6 +5,7 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
+from typing import List
 
 # Third Party
 import humanize
@@ -13,7 +14,7 @@ import humanize
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
@@ -473,11 +474,8 @@ class CorporationRoleFilter(BaseFilter):
 
     def process_filter(self, user: User) -> bool:
         """Return true when filter applies to the user, else False."""
-        eve_corporation_ids = list(
-            self.corporations.values_list("corporation_id", flat=True)
-        )
         characters = Character.objects.owned_by_user(user=user).filter(
-            eve_character__corporation_id__in=eve_corporation_ids
+            eve_character__corporation_id__in=self._corporation_ids()
         )
         return CharacterRole.objects.filter(
             character__in=list(characters),
@@ -486,49 +484,33 @@ class CorporationRoleFilter(BaseFilter):
         ).exists()
 
     def audit_filter(self, users):
-        """
-        Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
-        """
-
-        matching_character_ownerships = CharacterOwnership.objects.filter(
-            user__in=list(users),
-            character__memberaudit_character__assets__eve_type__in=list(
-                self.assets.all()
-            ),
+        """Return result of filter audit for given users."""
+        matching_characters = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            eve_character__corporation_id__in=self._corporation_ids(),
+            role__role=self.role,
+            role__location=(CharacterRole.Location.UNIVERSAL),
         ).values(
-            "user__id",
-            "character__character_name",
-            "character__memberaudit_character__assets__eve_type__name",
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
         )
 
-        output_characters = defaultdict(list)
-        for character_ownership in matching_character_ownerships:
-            character_name = character_ownership["character__character_name"]
-            asset_name = character_ownership[
-                "character__memberaudit_character__assets__eve_type__name"
-            ]
-
-            if self.assets.all().count() > 1:
-                output_characters[character_ownership["user__id"]].append(
-                    f"{character_name} ({asset_name})"
-                )
-            else:
-                output_characters[character_ownership["user__id"]].append(
-                    f"{character_name}"
-                )
+        user_with_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {}
-        for character_ownership, char_list in output_characters.items():
-            output[character_ownership] = {
-                "message": ", ".join(sorted(char_list)),
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
                 "check": True,
             }
 
         return output
+
+    def _corporation_ids(self) -> List[int]:
+        return list(self.corporations.values_list("corporation_id", flat=True))
 
 
 class SkillPointFilter(BaseFilter):
