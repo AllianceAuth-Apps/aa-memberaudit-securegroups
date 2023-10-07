@@ -225,6 +225,3 @@ class TestCorporationRoleFilter(TestCase):
             user_2.id: {"message": "Lex Luther", "check": True},
         }
         self.assertDictEqual(result, expected)
-
-    def test_should_not_allow_filter_without_defining_at_least_one_corporation(self):
-        ...

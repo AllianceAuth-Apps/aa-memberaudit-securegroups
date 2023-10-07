@@ -2,11 +2,16 @@
 Admin pages
 """
 
+# Standard Library
+from typing import Any
+
 # Third Party
 import humanize
 
 # Django
 from django.contrib import admin
+from django.db.models.query import QuerySet
+from django.http.request import HttpRequest
 from django.utils.translation import ngettext
 
 # Memberaudit Securegroups
@@ -15,6 +20,7 @@ from memberaudit_securegroups.models import (
     AgeFilter,
     AssetFilter,
     ComplianceFilter,
+    CorporationRoleFilter,
     SkillPointFilter,
     SkillSetFilter,
 )
@@ -83,6 +89,22 @@ class ComplianceFilterAdmin(SingletonModelAdmin):
     """
 
     list_display = ("description",)
+
+
+@admin.register(CorporationRoleFilter)
+class CorporationRoleFilterAdmin(admin.ModelAdmin):
+    list_display = ("description", "role", "_corporations")
+    filter_horizontal = ("corporations",)
+    fields = ("description", "role", "corporations")
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+        return qs.prefetch_related("corporations")
+
+    @admin.display()
+    def _corporations(self, obj) -> str:
+        objs = obj.corporations.all()
+        return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
 @admin.register(SkillPointFilter)
