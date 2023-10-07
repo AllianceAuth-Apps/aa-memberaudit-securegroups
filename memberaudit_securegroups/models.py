@@ -9,6 +9,13 @@ from collections import defaultdict
 # Third Party
 import humanize
 
+# Member Audit
+from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
+from memberaudit.models import Character, CharacterAsset, SkillSet
+
+# Memberaudit Securegroups
+from memberaudit_securegroups.memberaudit import MemberAuditChecks
+
 # Django
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -17,18 +24,11 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
-# Alliance Auth
-from allianceauth.authentication.models import CharacterOwnership
-
-# Member Audit
-from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, SkillSet
-
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
 
-# Memberaudit Securegroups
-from memberaudit_securegroups.memberaudit import MemberAuditChecks
+# Alliance Auth
+from allianceauth.authentication.models import CharacterOwnership
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime:
@@ -328,12 +328,9 @@ class AssetFilter(BaseFilter):
 
         characters = Character.objects.owned_by_user(user=user)
 
-        return (
-            CharacterAsset.objects.filter(
-                character__in=characters, eve_type__in=self.assets.all()
-            ).count()
-            > 0
-        )
+        return CharacterAsset.objects.filter(
+            character__in=characters, eve_type__in=self.assets.all()
+        ).exists()
 
     def audit_filter(self, users):
         """
@@ -344,32 +341,39 @@ class AssetFilter(BaseFilter):
         :rtype:
         """
 
-        character_ownership = CharacterOwnership.objects.filter(
-            user__in=users,
-            character__memberaudit_character__assets__eve_type__in=self.assets.all(),
+        matching_character_ownerships = CharacterOwnership.objects.filter(
+            user__in=list(users),
+            character__memberaudit_character__assets__eve_type__in=list(
+                self.assets.all()
+            ),
         ).values(
             "user__id",
             "character__character_name",
             "character__memberaudit_character__assets__eve_type__name",
         )
 
-        chars = defaultdict(list)
-
-        for character in character_ownership:
-            character_name = character["character__character_name"]
-            asset_name = character[
+        output_characters = defaultdict(list)
+        for character_ownership in matching_character_ownerships:
+            character_name = character_ownership["character__character_name"]
+            asset_name = character_ownership[
                 "character__memberaudit_character__assets__eve_type__name"
             ]
 
             if self.assets.all().count() > 1:
-                chars[character["user__id"]].append(f"{character_name} ({asset_name})")
+                output_characters[character_ownership["user__id"]].append(
+                    f"{character_name} ({asset_name})"
+                )
             else:
-                chars[character["user__id"]].append(f"{character_name}")
+                output_characters[character_ownership["user__id"]].append(
+                    f"{character_name}"
+                )
 
-        output = defaultdict(lambda: {"message": "", "check": False})
-
-        for character, char_list in chars.items():
-            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
+        output = {}
+        for character_ownership, char_list in output_characters.items():
+            output[character_ownership] = {
+                "message": ", ".join(sorted(char_list)),
+                "check": True,
+            }
 
         return output
 
