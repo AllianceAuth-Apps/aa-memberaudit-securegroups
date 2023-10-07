@@ -9,13 +9,6 @@ from collections import defaultdict
 # Third Party
 import humanize
 
-# Member Audit
-from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, SkillSet
-
-# Memberaudit Securegroups
-from memberaudit_securegroups.memberaudit import MemberAuditChecks
-
 # Django
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -24,11 +17,19 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
+# Alliance Auth
+from allianceauth.authentication.models import CharacterOwnership
+from allianceauth.eveonline.models import EveCorporationInfo
+
+# Member Audit
+from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
+from memberaudit.models import Character, CharacterAsset, CharacterRole, SkillSet
+
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
 
-# Alliance Auth
-from allianceauth.authentication.models import CharacterOwnership
+# Memberaudit Securegroups
+from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime:
@@ -329,7 +330,7 @@ class AssetFilter(BaseFilter):
         characters = Character.objects.owned_by_user(user=user)
 
         return CharacterAsset.objects.filter(
-            character__in=characters, eve_type__in=self.assets.all()
+            character__in=list(characters), eve_type__in=self.assets.all()
         ).exists()
 
     def audit_filter(self, users):
@@ -447,6 +448,85 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                     ),
                     "check": False,
                 }
+
+        return output
+
+
+class CorporationRoleFilter(BaseFilter):
+    """Filter for corporation roles."""
+
+    corporations = models.ManyToManyField(
+        EveCorporationInfo,
+        related_name="+",
+        help_text=_("The character with the role must be in one of these corporation."),
+    )
+    role = models.CharField(
+        max_length=3,
+        choices=CharacterRole.Role.choices,
+        help_text=_("User must have a character with this role."),
+    )
+
+    @property
+    def name(self):
+        """Return name of this filter."""
+        return _("Member Audit Corporation Role")
+
+    def process_filter(self, user: User) -> bool:
+        """Return true when filter applies to the user, else False."""
+        eve_corporation_ids = list(
+            self.corporations.values_list("corporation_id", flat=True)
+        )
+        characters = Character.objects.owned_by_user(user=user).filter(
+            eve_character__corporation_id__in=eve_corporation_ids
+        )
+        return CharacterRole.objects.filter(
+            character__in=list(characters),
+            role=self.role,
+            location=CharacterRole.Location.UNIVERSAL,
+        ).exists()
+
+    def audit_filter(self, users):
+        """
+        Audit Filter
+        :param users:
+        :type users:
+        :return:
+        :rtype:
+        """
+
+        matching_character_ownerships = CharacterOwnership.objects.filter(
+            user__in=list(users),
+            character__memberaudit_character__assets__eve_type__in=list(
+                self.assets.all()
+            ),
+        ).values(
+            "user__id",
+            "character__character_name",
+            "character__memberaudit_character__assets__eve_type__name",
+        )
+
+        output_characters = defaultdict(list)
+        for character_ownership in matching_character_ownerships:
+            character_name = character_ownership["character__character_name"]
+            asset_name = character_ownership[
+                "character__memberaudit_character__assets__eve_type__name"
+            ]
+
+            if self.assets.all().count() > 1:
+                output_characters[character_ownership["user__id"]].append(
+                    f"{character_name} ({asset_name})"
+                )
+            else:
+                output_characters[character_ownership["user__id"]].append(
+                    f"{character_name}"
+                )
+
+        output = {}
+        for character_ownership, char_list in output_characters.items():
+            output[character_ownership] = {
+                "message": ", ".join(sorted(char_list)),
+                "check": True,
+            }
 
         return output
 

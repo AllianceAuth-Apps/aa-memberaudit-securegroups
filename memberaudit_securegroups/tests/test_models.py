@@ -1,11 +1,24 @@
-from memberaudit.models import CharacterAsset
+# Django
+from django.test import TestCase
+
+# Alliance Auth
+from allianceauth.eveonline.models import EveCorporationInfo
+
+# Member Audit
+from memberaudit.models import CharacterAsset, CharacterRole
+from memberaudit.tests.testdata.factories import create_character_role
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.testdata.load_eveuniverse import load_eveuniverse
-from memberaudit.tests.utils import create_memberaudit_character
-from memberaudit_securegroups.models import AssetFilter
+from memberaudit.tests.utils import (
+    add_memberaudit_character_to_user,
+    create_memberaudit_character,
+)
 
-from django.test import TestCase
+# Alliance Auth (External Libs)
 from eveuniverse.models import EveType
+
+# Memberaudit Securegroups
+from memberaudit_securegroups.models import AssetFilter, CorporationRoleFilter
 
 
 class TestAssetFilter(TestCase):
@@ -74,10 +87,11 @@ class TestAssetFilter(TestCase):
         self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_audit_data_for_two_users(self):
-        # given
+        # given a filter for Merlins
         my_filter = AssetFilter.objects.create(description="dummy")
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
+        # and main user's character has a Merlin
         CharacterAsset.objects.create(
             item_id=1,
             character=self.character,
@@ -86,11 +100,22 @@ class TestAssetFilter(TestCase):
             location_flag="dummy",
             is_singleton=False,
         )
-        character_1002 = create_memberaudit_character(1002)
-        user_1002 = character_1002.character_ownership.user
+        # and main user's 2nd character also has a Merlin
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
         CharacterAsset.objects.create(
             item_id=2,
             character=character_1002,
+            eve_type=merlin_type,
+            quantity=1,
+            location_flag="dummy",
+            is_singleton=False,
+        )
+        # and a 2nd user has a character with a Merlin
+        character_1003 = create_memberaudit_character(1003)
+        user_1002 = character_1003.character_ownership.user
+        CharacterAsset.objects.create(
+            item_id=2,
+            character=character_1003,
             eve_type=merlin_type,
             quantity=1,
             location_flag="dummy",
@@ -100,8 +125,8 @@ class TestAssetFilter(TestCase):
         result = my_filter.audit_filter([self.user, user_1002])
         # then
         expected = {
-            self.user.id: {"message": self.character.name, "check": True},
-            user_1002.id: {"message": character_1002.name, "check": True},
+            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
+            user_1002.id: {"message": "Peter Parker", "check": True},
         }
         self.assertEqual(dict(result), expected)
 
@@ -112,3 +137,62 @@ class TestAssetFilter(TestCase):
         result = my_filter.audit_filter([self.user])
         # then
         self.assertEqual(result, {})
+
+
+class TestCorporationRoleFilter(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+        load_eveuniverse()
+        cls.character = create_memberaudit_character(1001)
+        cls.user = cls.character.character_ownership.user
+        cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
+        cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
+
+    def test_should_return_false_when_user_does_not_have_role(self):
+        # given
+        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
+        filter.corporations.add(self.corporation_2001)
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_true_when_user_has_character_with_role_in_corp(self):
+        # given
+        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
+        filter.corporations.add(self.corporation_2001)
+        filter.corporations.add(self.corporation_2101)
+        create_character_role(
+            character=self.character,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        # when/then
+        self.assertTrue(filter.process_filter(self.user))
+
+    def test_should_return_false_when_user_role_is_not_universal(self):
+        # given
+        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
+        filter.corporations.add(self.corporation_2001)
+        create_character_role(
+            character=self.character,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.OTHER,
+        )
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_false_when_character_with_role_is_in_wrong_corp(self):
+        # given
+        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
+        filter.corporations.add(self.corporation_2101)
+        create_character_role(
+            character=self.character,
+            role=CharacterRole.Role.DIRECTOR,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_not_allow_filter_without_defining_at_least_one_corporation(self):
+        ...
