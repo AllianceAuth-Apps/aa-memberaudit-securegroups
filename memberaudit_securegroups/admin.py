@@ -78,8 +78,17 @@ class AssetFilterAdmin(admin.ModelAdmin):
     AssetFilterAdmin
     """
 
-    list_display = ("description",)
+    list_display = ("description", "_assets")
     autocomplete_fields = ["assets"]
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+        return qs.prefetch_related("assets")
+
+    @admin.display()
+    def _assets(self, obj) -> str:
+        objs = obj.assets.all()
+        return ", ".join(sorted([obj.name for obj in objs]))
 
 
 @admin.register(ComplianceFilter)
