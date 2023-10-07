@@ -19,7 +19,6 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 # Alliance Auth
-from allianceauth.authentication.models import CharacterOwnership
 from allianceauth.eveonline.models import EveCorporationInfo
 
 # Member Audit
@@ -327,11 +326,9 @@ class AssetFilter(BaseFilter):
         :param user:
         :return:
         """
-
-        characters = Character.objects.owned_by_user(user=user)
-
         return CharacterAsset.objects.filter(
-            character__in=list(characters), eve_type__in=self.assets.all()
+            character__eve_character__character_ownership__user=user,
+            eve_type__in=self.assets.all(),
         ).exists()
 
     def audit_filter(self, users):
@@ -342,38 +339,31 @@ class AssetFilter(BaseFilter):
         :return:
         :rtype:
         """
-
-        matching_character_ownerships = CharacterOwnership.objects.filter(
-            user__in=list(users),
-            character__memberaudit_character__assets__eve_type__in=list(
-                self.assets.all()
-            ),
+        matching_characters = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            assets__eve_type__in=list(self.assets.all()),
         ).values(
-            "user__id",
-            "character__character_name",
-            "character__memberaudit_character__assets__eve_type__name",
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+            asset_name=F("assets__eve_type__name"),
         )
 
         output_characters = defaultdict(list)
-        for character_ownership in matching_character_ownerships:
-            character_name = character_ownership["character__character_name"]
-            asset_name = character_ownership[
-                "character__memberaudit_character__assets__eve_type__name"
-            ]
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            asset_name = user_id["asset_name"]
 
             if self.assets.all().count() > 1:
-                output_characters[character_ownership["user__id"]].append(
+                output_characters[user_id["user_id"]].append(
                     f"{character_name} ({asset_name})"
                 )
             else:
-                output_characters[character_ownership["user__id"]].append(
-                    f"{character_name}"
-                )
+                output_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {}
-        for character_ownership, char_list in output_characters.items():
-            output[character_ownership] = {
-                "message": ", ".join(sorted(char_list)),
+        for user_id, characters in output_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(characters)),
                 "check": True,
             }
 
@@ -473,7 +463,7 @@ class CorporationRoleFilter(BaseFilter):
         return _("Member Audit Corporation Role")
 
     def process_filter(self, user: User) -> bool:
-        """Return true when filter applies to the user, else False."""
+        """Return True when filter applies to the user, else False."""
         characters = Character.objects.owned_by_user(user=user).filter(
             eve_character__corporation_id__in=self._corporation_ids()
         )
@@ -483,7 +473,7 @@ class CorporationRoleFilter(BaseFilter):
             location=CharacterRole.Location.UNIVERSAL,
         ).exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
         """Return result of filter audit for given users."""
         matching_characters = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
