@@ -478,8 +478,8 @@ class CorporationRoleFilter(BaseFilter):
         matching_characters = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
-            role__role=self.role,
-            role__location=(CharacterRole.Location.UNIVERSAL),
+            roles__role=self.role,
+            roles__location=(CharacterRole.Location.UNIVERSAL),
         ).values(
             user_id=F("eve_character__character_ownership__user_id"),
             character_name=F("eve_character__character_name"),
