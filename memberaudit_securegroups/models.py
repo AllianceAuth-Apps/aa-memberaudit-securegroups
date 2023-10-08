@@ -454,7 +454,11 @@ class CorporationRoleFilter(BaseFilter):
     role = models.CharField(
         max_length=3,
         choices=CharacterRole.Role.choices,
+        db_index=True,
         help_text=_("User must have a character with this role."),
+    )
+    mains_only = models.BooleanField(
+        default=True, help_text=_("When True only main characters are considered.")
     )
 
     @property
@@ -464,23 +468,28 @@ class CorporationRoleFilter(BaseFilter):
 
     def process_filter(self, user: User) -> bool:
         """Return True when filter applies to the user, else False."""
-        characters = Character.objects.owned_by_user(user=user).filter(
-            eve_character__corporation_id__in=self._corporation_ids()
-        )
-        return CharacterRole.objects.filter(
-            character__in=list(characters),
+        qs = CharacterRole.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            character__eve_character__corporation_id__in=self._corporation_ids(),
             role=self.role,
             location=CharacterRole.Location.UNIVERSAL,
-        ).exists()
+        )
+        if self.mains_only:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+        return qs.exists()
 
     def audit_filter(self, users) -> dict:
         """Return result of filter audit for given users."""
-        matching_characters = Character.objects.filter(
+        qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
             roles__role=self.role,
             roles__location=(CharacterRole.Location.UNIVERSAL),
-        ).values(
+        )
+        if self.mains_only:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
             user_id=F("eve_character__character_ownership__user_id"),
             character_name=F("eve_character__character_name"),
         )
