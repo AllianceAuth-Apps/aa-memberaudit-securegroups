@@ -457,8 +457,11 @@ class CorporationRoleFilter(BaseFilter):
         db_index=True,
         help_text=_("User must have a character with this role."),
     )
-    mains_only = models.BooleanField(
-        default=True, help_text=_("When True only main characters are considered.")
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True the filter will also include characters which are not mains."
+        ),
     )
 
     @property
@@ -474,7 +477,7 @@ class CorporationRoleFilter(BaseFilter):
             role=self.role,
             location=CharacterRole.Location.UNIVERSAL,
         )
-        if self.mains_only:
+        if not self.include_alts:
             qs = qs.filter(character__eve_character__userprofile__isnull=False)
         return qs.exists()
 
@@ -486,7 +489,7 @@ class CorporationRoleFilter(BaseFilter):
             roles__role=self.role,
             roles__location=(CharacterRole.Location.UNIVERSAL),
         )
-        if self.mains_only:
+        if not self.include_alts:
             qs = qs.filter(eve_character__userprofile__isnull=False)
 
         matching_characters = qs.values(

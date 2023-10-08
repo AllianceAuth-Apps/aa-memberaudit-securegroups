@@ -211,7 +211,7 @@ class TestCorporationRoleFilter(TestCase):
     def test_should_return_false_when_character_with_role_is_not_main(self):
         # given filter for mains only
         filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, mains_only=True
+            role=CharacterRole.Role.DIRECTOR, include_alts=False
         )
         filter.corporations.add(self.corporation_2001)
         # and character has role, but is not main
@@ -227,7 +227,7 @@ class TestCorporationRoleFilter(TestCase):
     def test_should_return_true_when_character_with_role_is_not_main_but_allowed(self):
         # given filter for mains only
         filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, mains_only=False
+            role=CharacterRole.Role.DIRECTOR, include_alts=True
         )
         filter.corporations.add(self.corporation_2001)
         # and character has role, but is not main
@@ -243,7 +243,7 @@ class TestCorporationRoleFilter(TestCase):
     def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
         # given
         filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, mains_only=True
+            role=CharacterRole.Role.DIRECTOR, include_alts=False
         )
         filter.corporations.add(self.corporation_2001)
         filter.corporations.add(self.corporation_2101)
@@ -277,7 +277,7 @@ class TestCorporationRoleFilter(TestCase):
     def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
         # given
         filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, mains_only=False
+            role=CharacterRole.Role.DIRECTOR, include_alts=True
         )
         filter.corporations.add(self.corporation_2001)
         filter.corporations.add(self.corporation_2101)
