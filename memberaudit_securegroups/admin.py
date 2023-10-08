@@ -12,7 +12,11 @@ import humanize
 from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
+from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
+
+# Member Audit
+from memberaudit.models import CharacterRole
 
 # Memberaudit Securegroups
 from memberaudit_securegroups.models import (
@@ -100,9 +104,26 @@ class ComplianceFilterAdmin(SingletonModelAdmin):
     list_display = ("description",)
 
 
+class CorporationRoleListFilter(admin.SimpleListFilter):
+    title = _("corporation role")
+    parameter_name = "corporation_role"
+
+    def lookups(self, request, model_admin):
+        """Return lookups with used roles only."""
+        roles = set(model_admin.get_queryset(request).values_list("role", flat=True))
+        result = [(role, CharacterRole.Role(role).label) for role in roles]
+        return sorted(result, key=lambda o: o[1])
+
+    def queryset(self, request, queryset):
+        """Return queryset for selected role."""
+        if value := self.value():
+            return queryset.filter(role=value)
+
+
 @admin.register(CorporationRoleFilter)
 class CorporationRoleFilterAdmin(admin.ModelAdmin):
     list_display = ("description", "role", "_corporations")
+    list_filter = (CorporationRoleListFilter,)
     filter_horizontal = ("corporations",)
     fields = ("description", "role", "corporations", "include_alts")
 
