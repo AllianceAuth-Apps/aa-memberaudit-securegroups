@@ -5,7 +5,7 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
-from typing import List
+from typing import Iterable, List
 
 # Third Party
 import humanize
@@ -32,7 +32,7 @@ from eveuniverse.models import EveType
 from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
-def _get_threshold_date(timedelta_in_days: int) -> datetime:
+def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
         days=timedelta_in_days
     )
@@ -478,7 +478,7 @@ class CorporationRoleFilter(BaseFilter):
             qs = qs.filter(character__eve_character__userprofile__isnull=False)
         return qs.exists()
 
-    def audit_filter(self, users) -> dict:
+    def audit_filter(self, users: Iterable[User]) -> dict:
         """Return result of filter audit for given users."""
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
@@ -509,6 +509,7 @@ class CorporationRoleFilter(BaseFilter):
         return output
 
     def _corporation_ids(self) -> List[int]:
+        """Return Eve IDs of corporations in this filter."""
         return list(self.corporations.values_list("corporation_id", flat=True))
 
 

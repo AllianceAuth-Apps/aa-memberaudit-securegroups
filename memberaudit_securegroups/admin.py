@@ -102,9 +102,9 @@ class ComplianceFilterAdmin(SingletonModelAdmin):
 
 @admin.register(CorporationRoleFilter)
 class CorporationRoleFilterAdmin(admin.ModelAdmin):
-    list_display = ("description", "role", "_corporations")
+    list_display = ("description", "role", "_corporations", "mains_only")
     filter_horizontal = ("corporations",)
-    fields = ("description", "role", "corporations")
+    fields = ("description", "role", "corporations", "mains_only")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         qs = super().get_queryset(request)
