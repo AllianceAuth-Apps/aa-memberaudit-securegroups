@@ -17,4 +17,4 @@ class MemberAuditSecureGroupsConfig(AppConfig):
 
     name = "memberaudit_securegroups"
     label = "memberaudit_securegroups"
-    verbose_name = _(f"Member Audit Secure Groups Integration v{__version__}")
+    verbose_name = _(f"Secure Groups Member Audit Integration v{__version__}")
