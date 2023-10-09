@@ -5,8 +5,14 @@ from django.test import TestCase
 from allianceauth.eveonline.models import EveCorporationInfo
 
 # Member Audit
-from memberaudit.models import CharacterAsset, CharacterRole
-from memberaudit.tests.testdata.factories import create_character_role
+from memberaudit.models import CharacterRole
+from memberaudit.tests.testdata.factories import (
+    create_character_asset,
+    create_character_role,
+    create_character_skill_set_check,
+    create_skill_set,
+    create_skill_set_skill,
+)
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.testdata.load_eveuniverse import load_eveuniverse
 from memberaudit.tests.utils import (
@@ -24,6 +30,7 @@ from memberaudit_securegroups.models import (
     AssetFilter,
     ComplianceFilter,
     CorporationRoleFilter,
+    SkillSetFilter,
 )
 
 
@@ -48,14 +55,7 @@ class TestAssetFilter(TestCase):
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         astrahus_type = EveType.objects.get(name="Astrahus")
-        CharacterAsset.objects.create(
-            item_id=1,
-            character=self.character,
-            eve_type=astrahus_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=self.character, eve_type=astrahus_type)
         # when/then
         self.assertFalse(my_filter.process_filter(self.user))
 
@@ -64,14 +64,7 @@ class TestAssetFilter(TestCase):
         my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
-        CharacterAsset.objects.create(
-            item_id=1,
-            character=self.character,
-            eve_type=merlin_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=self.character, eve_type=merlin_type)
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
@@ -81,14 +74,7 @@ class TestAssetFilter(TestCase):
         merlin_type = EveType.objects.get(name="Merlin")
         astrahus_type = EveType.objects.get(name="Astrahus")
         my_filter.assets.add(merlin_type, astrahus_type)
-        CharacterAsset.objects.create(
-            item_id=1,
-            character=self.character,
-            eve_type=merlin_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=self.character, eve_type=merlin_type)
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
@@ -98,35 +84,14 @@ class TestAssetFilter(TestCase):
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         # and main user's character has a Merlin
-        CharacterAsset.objects.create(
-            item_id=1,
-            character=self.character,
-            eve_type=merlin_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=self.character, eve_type=merlin_type)
         # and main user's 2nd character also has a Merlin
         character_1002 = add_memberaudit_character_to_user(self.user, 1002)
-        CharacterAsset.objects.create(
-            item_id=2,
-            character=character_1002,
-            eve_type=merlin_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=character_1002, eve_type=merlin_type)
         # and a 2nd user has a character with a Merlin
         character_1003 = create_memberaudit_character(1003)
         user_1002 = character_1003.character_ownership.user
-        CharacterAsset.objects.create(
-            item_id=2,
-            character=character_1003,
-            eve_type=merlin_type,
-            quantity=1,
-            location_flag="dummy",
-            is_singleton=False,
-        )
+        create_character_asset(character=character_1003, eve_type=merlin_type)
         # when
         result = my_filter.audit_filter([self.user, user_1002])
         # then
@@ -403,3 +368,84 @@ class TestCorporationRoleFilter(TestCase):
             user_2.id: {"message": "Lex Luther", "check": True},
         }
         self.assertDictEqual(result, expected)
+
+
+class TestSkillSetFilterProcess(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+        load_eveuniverse()
+        # user with two characters
+        cls.character_1001 = create_memberaudit_character(1001)
+        cls.user = cls.character_1001.character_ownership.user
+        add_memberaudit_character_to_user(cls.user, 1002)
+        # amarr carrier skill set
+        cls.amarr_carrier_skill_type = EveType.objects.get(name="Amarr Carrier")
+        cls.amarr_carrier_skill_set = create_skill_set()
+        cls.amarr_carrier_skill_set_skill = create_skill_set_skill(
+            skill_set=cls.amarr_carrier_skill_set,
+            eve_type=cls.amarr_carrier_skill_type,
+            required_level=3,
+            recommended_level=5,
+        )
+        # caldari carrier skill set
+        cls.caldari_carrier_skill_type = EveType.objects.get(name="Caldari Carrier")
+        cls.caldari_carrier_skill_set = create_skill_set()
+        cls.caldari_carrier_skill_set_skill = create_skill_set_skill(
+            skill_set=cls.caldari_carrier_skill_set,
+            eve_type=cls.caldari_carrier_skill_type,
+            required_level=3,
+            recommended_level=5,
+        )
+
+    def test_should_return_false_when_user_does_not_have_skill_set_check(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user))
+
+    def test_should_return_false_when_user_did_not_pass_skill_set_check(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        skill_set_check = create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        skill_set_check.failed_required_skills.add(self.amarr_carrier_skill_set_skill)
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user))
+
+    def test_should_return_true_when_user_passes_skill_set(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
+
+    def test_should_return_true_when_user_passes_skill_set_except_recommended_skills(
+        self,
+    ):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        skill_set_check = create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        skill_set_check.failed_recommended_skills.add(
+            self.amarr_carrier_skill_set_skill
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
