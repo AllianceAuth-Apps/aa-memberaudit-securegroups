@@ -28,6 +28,7 @@ from memberaudit.models import (
     CharacterAsset,
     CharacterRole,
     CharacterSkillSetCheck,
+    General,
     SkillSet,
 )
 
@@ -394,17 +395,26 @@ class ComplianceFilter(BaseFilter, SingletonModel):
     def audit_filter(self, users) -> dict:
         """Return audit data for compliant of give users."""
 
-        output = {}
-
-        for user in users:
-            unregistered_chars = (
-                self._unregistered_characters(user)
-                .order_by("character_name")
-                .values_list("character_name", flat=True)
+        unregistered_characters = EveCharacter.objects.filter(
+            character_ownership__user__in=list(users),
+            memberaudit_character__isnull=True,
+        ).values("character_name", user_id=F("character_ownership__user_id"))
+        user_with_unregistered_characters = defaultdict(list)
+        for obj in unregistered_characters:
+            character_name = obj["character_name"]
+            user_with_unregistered_characters[obj["user_id"]].append(
+                f"{character_name}"
             )
 
+        all_memberaudit_users_ids = General.users_with_basic_access().values_list(
+            "id", flat=True
+        )
+
+        output = {}
+        for user_id in all_memberaudit_users_ids:
+            unregistered_chars = user_with_unregistered_characters.get(user_id)
             if not unregistered_chars:
-                output[user.pk] = {
+                output[user_id] = {
                     "message": _(
                         f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
                     ),
@@ -414,14 +424,11 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                 missing_characters_message = ngettext(
                     "Missing character: ",
                     "Missing characters: ",
-                    unregistered_chars.count(),
+                    len(unregistered_chars),
                 )
-
-                output[user.pk] = {
+                output[user_id] = {
                     "message": missing_characters_message
-                    + ", ".join(
-                        character_name for character_name in unregistered_chars
-                    ),
+                    + ", ".join(sorted(unregistered_chars)),
                     "check": False,
                 }
 
