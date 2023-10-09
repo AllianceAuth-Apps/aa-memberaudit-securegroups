@@ -588,12 +588,26 @@ class SkillSetFilter(BaseFilter):
     SkillSetFilter
     """
 
+    class CharacterType(models.TextChoices):
+        """A character type."""
+
+        ANY = "AN", _("any")
+        MAINS_ONLY = "MO", _("mains only")
+        ALTS_ONLY = "AO", _("alts only")
+
     skill_sets = models.ManyToManyField(
         SkillSet,
         help_text=_(
-            "Users must possess all of the skills in <strong>one</strong> of the "
-            "selected skill sets."
+            "Users must have a character who possess all of the skills in "
+            "<strong>one</strong> of the selected skill sets."
         ),
+    )
+    character_type = models.CharField(
+        max_length=2,
+        choices=CharacterType.choices,
+        default=CharacterType.ANY,
+        blank=True,
+        help_text=_("Specify the type of character that needs to have the skill set."),
     )
 
     @property
@@ -611,11 +625,16 @@ class SkillSetFilter(BaseFilter):
         :param user:
         :return:
         """
-        return CharacterSkillSetCheck.objects.filter(
+        qs = CharacterSkillSetCheck.objects.filter(
             character__eve_character__character_ownership__user=user,
             skill_set__in=list(self.skill_sets.all()),
             failed_required_skills__isnull=True,
-        ).exists()
+        )
+        if self.character_type == self.CharacterType.MAINS_ONLY:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+        elif self.character_type == self.CharacterType.ALTS_ONLY:
+            qs = qs.filter(character__eve_character__userprofile__isnull=True)
+        return qs.exists()
 
     def audit_filter(self, users):
         """
@@ -626,10 +645,15 @@ class SkillSetFilter(BaseFilter):
         :rtype:
         """
 
-        matching_characters = Character.objects.filter(
+        qs = Character.objects.filter(
             skill_set_checks__skill_set__in=list(self.skill_sets.all()),
             skill_set_checks__failed_required_skills__isnull=True,
-        ).values(
+        )
+        if self.character_type == self.CharacterType.MAINS_ONLY:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+        elif self.character_type == self.CharacterType.ALTS_ONLY:
+            qs = qs.filter(eve_character__userprofile__isnull=True)
+        matching_characters = qs.values(
             user_id=F("eve_character__character_ownership__user_id"),
             character_name=F("eve_character__character_name"),
         )

@@ -1,4 +1,5 @@
 # Django
+# Django
 from django.test import TestCase
 
 # Alliance Auth
@@ -371,13 +372,13 @@ class TestCorporationRoleFilter(TestCase):
         self.assertDictEqual(result, expected)
 
 
-class TestSkillSetFilter(TestCase):
+class TestSkillSetFilterBase(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
         load_eveuniverse()
-        # user with two characters
+        # user with a main and an alt
         cls.character_1001 = create_memberaudit_character(1001)
         cls.user = cls.character_1001.character_ownership.user
         cls.character_1002 = add_memberaudit_character_to_user(cls.user, 1002)
@@ -400,6 +401,8 @@ class TestSkillSetFilter(TestCase):
             recommended_level=5,
         )
 
+
+class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
     def test_should_return_name(self):
         # given
         my_filter = SkillSetFilter.objects.create()
@@ -457,7 +460,93 @@ class TestSkillSetFilter(TestCase):
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
-    def test_should_return_audit_data_with_passing_users(self):
+    def test_should_return_false_when_character_is_main_but_alt_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ALTS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user))
+
+    def test_should_return_false_when_character_is_main_and_main_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
+
+    def test_should_return_true_when_character_is_main_and_any_allowed(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ANY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
+
+    def test_should_return_false_when_character_is_alt_but_main_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user))
+
+    def test_should_return_true_when_character_is_alt_and_any_allowed(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ANY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
+
+    def test_should_return_true_when_character_is_alt_and_alt_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ALTS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user))
+
+
+class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
+    def test_should_return_audit_data_with_two_users(self):
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
@@ -493,3 +582,103 @@ class TestSkillSetFilter(TestCase):
         result = my_filter.audit_filter([self.user])
         # then
         self.assertDictEqual(result, {})
+
+    def test_should_return_audit_data_when_character_is_main_but_alt_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ALTS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        self.assertDictEqual(result, {})
+
+    def test_should_return_audit_data_when_character_is_main_and_main_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_audit_data_when_character_is_main_and_any_allowed(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ANY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_audit_data_when_character_is_alt_but_main_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        self.assertDictEqual(result, {})
+
+    def test_should_return_audit_data_when_character_is_alt_and_any_allowed(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ANY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_audit_data_when_character_is_alt_and_alt_required(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(
+            character_type=SkillSetFilter.CharacterType.ANY
+        )
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
+        self.assertDictEqual(result, expected)
