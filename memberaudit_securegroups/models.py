@@ -390,7 +390,10 @@ class ComplianceFilter(BaseFilter, SingletonModel):
 
     def process_filter(self, user: User) -> bool:
         """Return True if is compliant, else False."""
-        return not self._unregistered_characters(user).exists()
+        unregistered_characters = EveCharacter.objects.filter(
+            character_ownership__user=user, memberaudit_character__isnull=True
+        )
+        return not unregistered_characters.exists()
 
     def audit_filter(self, users) -> dict:
         """Return audit data for compliant of give users."""
@@ -399,6 +402,7 @@ class ComplianceFilter(BaseFilter, SingletonModel):
             character_ownership__user__in=list(users),
             memberaudit_character__isnull=True,
         ).values("character_name", user_id=F("character_ownership__user_id"))
+
         user_with_unregistered_characters = defaultdict(list)
         for obj in unregistered_characters:
             character_name = obj["character_name"]
@@ -433,12 +437,6 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                 }
 
         return output
-
-    def _unregistered_characters(self, user: User) -> models.QuerySet:
-        """Return query of all unregistered characters for a user."""
-        return EveCharacter.objects.filter(
-            character_ownership__user=user, memberaudit_character__isnull=True
-        )
 
 
 class CorporationRoleFilter(BaseFilter):
