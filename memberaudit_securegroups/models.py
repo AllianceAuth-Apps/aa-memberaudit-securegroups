@@ -621,25 +621,24 @@ class SkillSetFilter(BaseFilter):
         :rtype:
         """
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        matching_characters = Character.objects.filter(
+            skill_set_checks__skill_set__in=list(self.skill_sets.all()),
+            skill_set_checks__failed_required_skills__isnull=True,
+        ).values(
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+        )
 
-        for user in users:
-            chars = defaultdict(list)
-            characters = Character.objects.owned_by_user(user=user)
+        user_with_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-            for character in characters:
-                for check in character.skill_set_checks.filter(
-                    skill_set__in=self.skill_sets.all()
-                ):
-                    if check.failed_required_skills.count() == 0:
-                        chars[character.user.pk].append(
-                            character.eve_character.character_name
-                        )
-
-                        for char_user, char_list in chars.items():
-                            output[char_user] = {
-                                "message": ", ".join(sorted(char_list)),
-                                "check": True,
-                            }
+        output = {}
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
 
         return output

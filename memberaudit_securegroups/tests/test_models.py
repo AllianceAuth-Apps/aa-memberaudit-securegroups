@@ -370,7 +370,7 @@ class TestCorporationRoleFilter(TestCase):
         self.assertDictEqual(result, expected)
 
 
-class TestSkillSetFilterProcess(TestCase):
+class TestSkillSetFilter(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -379,7 +379,7 @@ class TestSkillSetFilterProcess(TestCase):
         # user with two characters
         cls.character_1001 = create_memberaudit_character(1001)
         cls.user = cls.character_1001.character_ownership.user
-        add_memberaudit_character_to_user(cls.user, 1002)
+        cls.character_1002 = add_memberaudit_character_to_user(cls.user, 1002)
         # amarr carrier skill set
         cls.amarr_carrier_skill_type = EveType.objects.get(name="Amarr Carrier")
         cls.amarr_carrier_skill_set = create_skill_set()
@@ -449,3 +449,40 @@ class TestSkillSetFilterProcess(TestCase):
         )
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
+
+    def test_should_return_audit_data_with_passing_users(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            character=self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+        character_1101 = create_memberaudit_character(1101)
+        user_1101 = character_1101.character_ownership.user
+        create_character_skill_set_check(
+            character=character_1101, skill_set=self.amarr_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user, user_1101])
+        # then
+        expected = {
+            self.user.id: {"check": True, "message": "Bruce Wayne, Clark Kent"},
+            user_1101.id: {"check": True, "message": "Lex Luther"},
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_audit_data_with_no_users(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        # when
+        result = my_filter.audit_filter([self.user])
+        # then
+        self.assertDictEqual(result, {})
