@@ -45,7 +45,7 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_name(self):
         # given
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         # when/then
         self.assertTrue(my_filter.name)
 
@@ -116,6 +116,12 @@ class TestComplianceFilterProcess(TestCase):
         super().setUpClass()
         load_entities()
 
+    def test_should_return_name(self):
+        # given
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertTrue(my_filter.name)
+
     def test_should_return_true_when_user_is_compliant_1(self):
         # given a user with 1 registered character
         character = create_memberaudit_character(1001)
@@ -155,6 +161,12 @@ class TestComplianceFilterAssert(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
+
+    def test_should_return_name(self):
+        # given
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertTrue(my_filter.name)
 
     def test_should_return_data_for_compliant_user(self):
         # given
@@ -210,6 +222,14 @@ class TestCorporationRoleFilter(TestCase):
         cls.user = cls.character.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
         cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
+
+    def test_should_return_name(self):
+        # given
+        my_filter = CorporationRoleFilter.objects.create(
+            role=CharacterRole.Role.DIRECTOR
+        )
+        # when/then
+        self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_role(self):
         # given
@@ -398,6 +418,12 @@ class TestSkillSetFilter(TestCase):
             required_level=3,
             recommended_level=5,
         )
+
+    def test_should_return_name(self):
+        # given
+        my_filter = SkillSetFilter.objects.create()
+        # when/then
+        self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_skill_set_check(self):
         # given

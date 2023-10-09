@@ -42,7 +42,7 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "aa-memberaudit>=3.3",
+    "aa-memberaudit>=3.3.1",
     "allianceauth>=3",
     "allianceauth-securegroups>=0.5.1",
 ]
