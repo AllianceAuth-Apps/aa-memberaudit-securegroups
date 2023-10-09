@@ -404,14 +404,7 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         :rtype:
         """
 
-        output = defaultdict(
-            lambda: {
-                "message": _(
-                    f"Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
-                ),
-                "check": False,
-            }
-        )
+        output = {}
 
         for user in users:
             compliance_check = MemberAuditChecks.compliance(user=user)
@@ -435,7 +428,7 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                 output[user.pk] = {
                     "message": missing_characters_message
                     + ", ".join(
-                        str(char.character_name) for char in unregistered_chars
+                        sorted(str(char.character_name) for char in unregistered_chars)
                     ),
                     "check": False,
                 }

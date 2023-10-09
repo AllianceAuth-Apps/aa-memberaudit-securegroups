@@ -10,15 +10,21 @@ from memberaudit.tests.testdata.factories import create_character_role
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.testdata.load_eveuniverse import load_eveuniverse
 from memberaudit.tests.utils import (
+    add_auth_character_to_user,
     add_memberaudit_character_to_user,
     create_memberaudit_character,
+    create_user_from_evecharacter_with_access,
 )
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
 
 # Memberaudit Securegroups
-from memberaudit_securegroups.models import AssetFilter, CorporationRoleFilter
+from memberaudit_securegroups.models import (
+    AssetFilter,
+    ComplianceFilter,
+    CorporationRoleFilter,
+)
 
 
 class TestAssetFilter(TestCase):
@@ -38,7 +44,7 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_false_when_user_does_not_have_asset(self):
         # given
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         astrahus_type = EveType.objects.get(name="Astrahus")
@@ -55,7 +61,7 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_true_when_user_has_asset(self):
         # given
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         CharacterAsset.objects.create(
@@ -71,7 +77,7 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_true_when_user_has_at_least_one_asset(self):
         # given
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         astrahus_type = EveType.objects.get(name="Astrahus")
         my_filter.assets.add(merlin_type, astrahus_type)
@@ -88,7 +94,7 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_audit_data_for_two_users(self):
         # given a filter for Merlins
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         # and main user's character has a Merlin
@@ -132,11 +138,102 @@ class TestAssetFilter(TestCase):
 
     def test_should_return_audit_data_when_no_matches(self):
         # given
-        my_filter = AssetFilter.objects.create(description="dummy")
+        my_filter = AssetFilter.objects.create()
         # when
         result = my_filter.audit_filter([self.user])
         # then
         self.assertEqual(result, {})
+
+
+class TestComplianceFilterProcess(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+
+    def test_should_return_true_when_user_is_compliant_1(self):
+        # given a user with 1 registered character
+        character = create_memberaudit_character(1001)
+        user = character.character_ownership.user
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_true_when_user_is_compliant_2(self):
+        # given a user with 2 registered character
+        character = create_memberaudit_character(1001)
+        user = character.character_ownership.user
+        add_memberaudit_character_to_user(user, 1002)
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_false_when_user_is_not_compliant_1(self):
+        # given a user with 1 unregistered character
+        user, _ = create_user_from_evecharacter_with_access(1001)
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_false_when_user_is_not_compliant_2(self):
+        # given a user with 1 registered and 1 unregistered character
+        character = create_memberaudit_character(1001)
+        user = character.character_ownership.user
+        add_auth_character_to_user(user, 1002)
+        my_filter = ComplianceFilter.objects.create()
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+
+class TestComplianceFilterAssert(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+
+    def test_should_return_data_for_compliant_user(self):
+        # given
+        character = create_memberaudit_character(1001)
+        user_1001 = character.character_ownership.user
+        my_filter = ComplianceFilter.objects.create()
+        # when
+        result = my_filter.audit_filter([user_1001])
+        # then
+        expected = {
+            user_1001.pk: {
+                "check": True,
+                "message": "All characters have been added to Member Audit",
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_data_for_non_compliant_user_with_1_character(self):
+        # given
+        user, _ = create_user_from_evecharacter_with_access(1001)
+        my_filter = ComplianceFilter.objects.create()
+        # when
+        result = my_filter.audit_filter([user])
+        # then
+        expected = {
+            user.pk: {"check": False, "message": "Missing character: Bruce Wayne"},
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_data_for_non_compliant_user_with_2_characters(self):
+        # given
+        user, _ = create_user_from_evecharacter_with_access(1001)
+        add_auth_character_to_user(user, 1002)
+        my_filter = ComplianceFilter.objects.create()
+        # when
+        result = my_filter.audit_filter([user])
+        # then
+        expected = {
+            user.pk: {
+                "check": False,
+                "message": "Missing characters: Bruce Wayne, Clark Kent",
+            },
+        }
+        self.assertDictEqual(result, expected)
 
 
 class TestCorporationRoleFilter(TestCase):
@@ -144,7 +241,6 @@ class TestCorporationRoleFilter(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
-        load_eveuniverse()
         cls.character = create_memberaudit_character(1001)
         cls.user = cls.character.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
