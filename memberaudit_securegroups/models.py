@@ -19,7 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 # Alliance Auth
-from allianceauth.eveonline.models import EveCorporationInfo
+from allianceauth.eveonline.models import EveCharacter, EveCorporationInfo
 
 # Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
@@ -27,9 +27,6 @@ from memberaudit.models import Character, CharacterAsset, CharacterRole, SkillSe
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
-
-# Memberaudit Securegroups
-from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
@@ -384,32 +381,23 @@ class ComplianceFilter(BaseFilter, SingletonModel):
 
         return _("Compliance")
 
-    def process_filter(self, user: User):
-        """
-        Processing filter
-        :param user:
-        :return:
-        """
+    def process_filter(self, user: User) -> bool:
+        """Return True if is compliant, else False."""
+        return not self._unregistered_characters(user).exists()
 
-        compliance_check = MemberAuditChecks.compliance(user=user)
-
-        return compliance_check["is_compliant"]
-
-    def audit_filter(self, users):
-        """
-        Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
-        """
+    def audit_filter(self, users) -> dict:
+        """Return audit data for compliant of give users."""
 
         output = {}
 
         for user in users:
-            compliance_check = MemberAuditChecks.compliance(user=user)
+            unregistered_chars = (
+                self._unregistered_characters(user)
+                .order_by("character_name")
+                .values_list("character_name", flat=True)
+            )
 
-            if compliance_check["is_compliant"]:
+            if not unregistered_chars:
                 output[user.pk] = {
                     "message": _(
                         f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
@@ -417,8 +405,6 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                     "check": True,
                 }
             else:
-                unregistered_chars = compliance_check["unregistered_chars"]
-
                 missing_characters_message = ngettext(
                     "Missing character: ",
                     "Missing characters: ",
@@ -428,12 +414,18 @@ class ComplianceFilter(BaseFilter, SingletonModel):
                 output[user.pk] = {
                     "message": missing_characters_message
                     + ", ".join(
-                        sorted(str(char.character_name) for char in unregistered_chars)
+                        character_name for character_name in unregistered_chars
                     ),
                     "check": False,
                 }
 
         return output
+
+    def _unregistered_characters(self, user: User) -> models.QuerySet:
+        """Return query of all unregistered characters for a user."""
+        return EveCharacter.objects.filter(
+            character_ownership__user=user, memberaudit_character__isnull=True
+        )
 
 
 class CorporationRoleFilter(BaseFilter):
