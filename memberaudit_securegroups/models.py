@@ -23,7 +23,13 @@ from allianceauth.eveonline.models import EveCharacter, EveCorporationInfo
 
 # Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, CharacterRole, SkillSet
+from memberaudit.models import (
+    Character,
+    CharacterAsset,
+    CharacterRole,
+    CharacterSkillSetCheck,
+    SkillSet,
+)
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
@@ -600,17 +606,11 @@ class SkillSetFilter(BaseFilter):
         :param user:
         :return:
         """
-
-        characters = Character.objects.owned_by_user(user=user)
-
-        for character in characters:
-            for check in character.skill_set_checks.filter(
-                skill_set__in=self.skill_sets.all()
-            ):
-                if check.failed_required_skills.count() == 0:
-                    return True
-
-        return False
+        return CharacterSkillSetCheck.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            skill_set__in=list(self.skill_sets.all()),
+            failed_required_skills__isnull=True,
+        ).exists()
 
     def audit_filter(self, users):
         """
