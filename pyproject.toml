@@ -1,11 +1,12 @@
 [build-system]
-build-backend = "flit_core.buildapi"
+build-backend = "hatchling.build"
 requires = [
-    "flit_core<4,>=3.2",
+    "hatchling",
 ]
 
 [project]
 name = "aa-memberaudit-securegroups"
+description = "Member Audit Secure Groups integration for Alliance Auth."
 readme = "README.md"
 keywords = [
     "allianceauth",
@@ -38,7 +39,6 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 dynamic = [
-    "description",
     "version",
 ]
 dependencies = [
@@ -53,5 +53,8 @@ Homepage = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/"
 Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git"
 Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
 
-[tool.flit.module]
-name = "memberaudit_securegroups"
+[tool.hatch.build]
+include = ["/memberaudit_securegroups"]
+
+[tool.hatch.version]
+path = "memberaudit_securegroups/__init__.py"
