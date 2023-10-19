@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
             name="character_type",
             field=models.CharField(
                 blank=True,
-                choices=[("AN", "any"), ("MO", "mains only"), ("AO", "alts only")],
+                choices=[("AN", "Any"), ("MO", "Mains only"), ("AO", "Alts only")],
                 default="AN",
                 help_text="Specify the type of character that needs to have the skill set.",
                 max_length=2,
@@ -116,13 +116,13 @@ class Migration(migrations.Migration):
                     "include_alts",
                     models.BooleanField(
                         default=False,
-                        help_text="When True the filter will also include characters which are not mains.",
+                        help_text="When True, the filter will also include the users alt-characters.",
                     ),
                 ),
                 (
                     "corporations",
                     models.ManyToManyField(
-                        help_text="The character with the role must be in one of these corporation.",
+                        help_text="The character with the role must be in one of these corporations.",
                         related_name="+",
                         to="eveonline.evecorporationinfo",
                     ),

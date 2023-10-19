@@ -87,11 +87,13 @@ class AssetFilterAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         qs = super().get_queryset(request)
+
         return qs.prefetch_related("assets")
 
     @admin.display()
     def _assets(self, obj) -> str:
         objs = obj.assets.all()
+
         return ", ".join(sorted([obj.name for obj in objs]))
 
 
@@ -109,19 +111,30 @@ class CorporationRoleListFilter(admin.SimpleListFilter):
     parameter_name = "corporation_role"
 
     def lookups(self, request, model_admin):
-        """Return lookups with used roles only."""
+        """
+        Return lookups with used roles only.
+        """
+
         roles = set(model_admin.get_queryset(request).values_list("role", flat=True))
         result = [(role, CharacterRole.Role(role).label) for role in roles]
+
         return sorted(result, key=lambda o: o[1])
 
     def queryset(self, request, queryset):
-        """Return queryset for selected role."""
+        """
+        Return queryset for selected role.
+        """
+
         if value := self.value():
             return queryset.filter(role=value)
 
 
 @admin.register(CorporationRoleFilter)
 class CorporationRoleFilterAdmin(admin.ModelAdmin):
+    """
+    CorporationRoleFilterAdmin
+    """
+
     list_display = ("description", "role", "_corporations")
     list_filter = (CorporationRoleListFilter,)
     filter_horizontal = ("corporations",)
@@ -129,11 +142,13 @@ class CorporationRoleFilterAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         qs = super().get_queryset(request)
+
         return qs.prefetch_related("corporations")
 
     @admin.display()
     def _corporations(self, obj) -> str:
         objs = obj.corporations.all()
+
         return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
@@ -162,9 +177,11 @@ class SkillSetFilterAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         qs = super().get_queryset(request)
+
         return qs.prefetch_related("skill_sets")
 
     @admin.display()
     def _skill_sets(self, obj) -> str:
         objs = obj.skill_sets.all()
+
         return ", ".join(sorted([obj.name for obj in objs]))
