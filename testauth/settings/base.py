@@ -15,6 +15,7 @@ from celery.schedules import crontab
 # Django
 from django.contrib import messages
 
+# pylint: disable=line-too-long
 INSTALLED_APPS = [
     "allianceauth",  # needs to be on top of this list to support favicons in Django admin (see https://gitlab.com/allianceauth/allianceauth/-/issues/1301)
     "django.contrib.admin",
@@ -45,23 +46,23 @@ CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 CELERYBEAT_SCHEDULE = {
     "esi_cleanup_callbackredirect": {
         "task": "esi.tasks.cleanup_callbackredirect",
-        "schedule": crontab(minute=0, hour="*/4"),
+        "schedule": crontab(minute="0", hour="*/4"),
     },
     "esi_cleanup_token": {
         "task": "esi.tasks.cleanup_token",
-        "schedule": crontab(minute=0, hour=0),
+        "schedule": crontab(minute="0", hour="0"),
     },
     "run_model_update": {
         "task": "allianceauth.eveonline.tasks.run_model_update",
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute="0", hour="*/6"),
     },
     "check_all_character_ownership": {
         "task": "allianceauth.authentication.tasks.check_all_character_ownership",
-        "schedule": crontab(minute=0, hour="*/4"),
+        "schedule": crontab(minute="0", hour="*/4"),
     },
     "analytics_daily_stats": {
         "task": "allianceauth.analytics.tasks.analytics_daily_stats",
-        "schedule": crontab(minute=0, hour=2),
+        "schedule": crontab(minute="0", hour="2"),
     },
 }
 
