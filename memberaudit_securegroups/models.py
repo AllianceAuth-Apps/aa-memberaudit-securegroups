@@ -5,6 +5,7 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
+from typing import Iterable, List
 
 # Third Party
 import humanize
@@ -13,25 +14,29 @@ import humanize
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 # Alliance Auth
-from allianceauth.authentication.models import CharacterOwnership
+from allianceauth.eveonline.models import EveCharacter, EveCorporationInfo
 
 # Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
-from memberaudit.models import Character, CharacterAsset, SkillSet
+from memberaudit.models import (
+    Character,
+    CharacterAsset,
+    CharacterRole,
+    CharacterSkillSetCheck,
+    General,
+    SkillSet,
+)
 
 # Alliance Auth (External Libs)
 from eveuniverse.models import EveType
 
-# Memberaudit Securegroups
-from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
-
-def _get_threshold_date(timedelta_in_days: int) -> datetime:
+def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
         days=timedelta_in_days
     )
@@ -128,7 +133,7 @@ class BaseFilter(models.Model):
         :return:
         """
 
-        raise NotImplementedError(_("Please create a filter!"))
+        raise NotImplementedError("Please create a filter!")
 
     def audit_filter(self, users):
         """
@@ -139,7 +144,7 @@ class BaseFilter(models.Model):
         :rtype:
         """
 
-        raise NotImplementedError(_("Please create an audit function!"))
+        raise NotImplementedError("Please create an audit function!")
 
 
 class ActivityFilter(BaseFilter):
@@ -325,15 +330,10 @@ class AssetFilter(BaseFilter):
         :param user:
         :return:
         """
-
-        characters = Character.objects.owned_by_user(user=user)
-
-        return (
-            CharacterAsset.objects.filter(
-                character__in=characters, eve_type__in=self.assets.all()
-            ).count()
-            > 0
-        )
+        return CharacterAsset.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            eve_type__in=self.assets.all(),
+        ).exists()
 
     def audit_filter(self, users):
         """
@@ -343,33 +343,33 @@ class AssetFilter(BaseFilter):
         :return:
         :rtype:
         """
-
-        character_ownership = CharacterOwnership.objects.filter(
-            user__in=users,
-            character__memberaudit_character__assets__eve_type__in=self.assets.all(),
+        matching_characters = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            assets__eve_type__in=list(self.assets.all()),
         ).values(
-            "user__id",
-            "character__character_name",
-            "character__memberaudit_character__assets__eve_type__name",
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+            asset_name=F("assets__eve_type__name"),
         )
 
-        chars = defaultdict(list)
-
-        for character in character_ownership:
-            character_name = character["character__character_name"]
-            asset_name = character[
-                "character__memberaudit_character__assets__eve_type__name"
-            ]
+        output_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            asset_name = user_id["asset_name"]
 
             if self.assets.all().count() > 1:
-                chars[character["user__id"]].append(f"{character_name} ({asset_name})")
+                output_characters[user_id["user_id"]].append(
+                    f"{character_name} ({asset_name})"
+                )
             else:
-                chars[character["user__id"]].append(f"{character_name}")
+                output_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = defaultdict(lambda: {"message": "", "check": False})
-
-        for character, char_list in chars.items():
-            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
+        output = {}
+        for user_id, characters in output_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(characters)),
+                "check": True,
+            }
 
         return output
 
@@ -388,63 +388,128 @@ class ComplianceFilter(BaseFilter, SingletonModel):
 
         return _("Compliance")
 
-    def process_filter(self, user: User):
-        """
-        Processing filter
-        :param user:
-        :return:
-        """
+    def process_filter(self, user: User) -> bool:
+        """Return True if is compliant, else False."""
+        unregistered_characters = EveCharacter.objects.filter(
+            character_ownership__user=user, memberaudit_character__isnull=True
+        )
+        return not unregistered_characters.exists()
 
-        compliance_check = MemberAuditChecks.compliance(user=user)
+    def audit_filter(self, users) -> dict:
+        """Return audit data for compliant of give users."""
 
-        return compliance_check["is_compliant"]
+        unregistered_characters = EveCharacter.objects.filter(
+            character_ownership__user__in=list(users),
+            memberaudit_character__isnull=True,
+        ).values("character_name", user_id=F("character_ownership__user_id"))
 
-    def audit_filter(self, users):
-        """
-        Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
-        """
+        user_with_unregistered_characters = defaultdict(list)
+        for obj in unregistered_characters:
+            character_name = obj["character_name"]
+            user_with_unregistered_characters[obj["user_id"]].append(
+                f"{character_name}"
+            )
 
-        output = defaultdict(
-            lambda: {
-                "message": _(
-                    f"Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
-                ),
-                "check": False,
-            }
+        all_memberaudit_users_ids = General.users_with_basic_access().values_list(
+            "id", flat=True
         )
 
-        for user in users:
-            compliance_check = MemberAuditChecks.compliance(user=user)
-
-            if compliance_check["is_compliant"]:
-                output[user.pk] = {
+        output = {}
+        for user_id in all_memberaudit_users_ids:
+            unregistered_chars = user_with_unregistered_characters.get(user_id)
+            if not unregistered_chars:
+                output[user_id] = {
                     "message": _(
                         f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
                     ),
                     "check": True,
                 }
             else:
-                unregistered_chars = compliance_check["unregistered_chars"]
-
                 missing_characters_message = ngettext(
                     "Missing character: ",
                     "Missing characters: ",
-                    unregistered_chars.count(),
+                    len(unregistered_chars),
                 )
-
-                output[user.pk] = {
+                output[user_id] = {
                     "message": missing_characters_message
-                    + ", ".join(
-                        str(char.character_name) for char in unregistered_chars
-                    ),
+                    + ", ".join(sorted(unregistered_chars)),
                     "check": False,
                 }
 
         return output
+
+
+class CorporationRoleFilter(BaseFilter):
+    """Filter for corporation roles."""
+
+    corporations = models.ManyToManyField(
+        EveCorporationInfo,
+        related_name="+",
+        help_text=_("The character with the role must be in one of these corporation."),
+    )
+    role = models.CharField(
+        max_length=3,
+        choices=CharacterRole.Role.choices,
+        db_index=True,
+        help_text=_("User must have a character with this role."),
+    )
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True the filter will also include characters which are not mains."
+        ),
+    )
+
+    @property
+    def name(self):
+        """Return name of this filter."""
+        return _("Member Audit Corporation Role")
+
+    def process_filter(self, user: User) -> bool:
+        """Return True when filter applies to the user, else False."""
+        qs = CharacterRole.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            character__eve_character__corporation_id__in=self._corporation_ids(),
+            role=self.role,
+            location=CharacterRole.Location.UNIVERSAL,
+        )
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+        return qs.exists()
+
+    def audit_filter(self, users: Iterable[User]) -> dict:
+        """Return result of filter audit for given users."""
+        qs = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            eve_character__corporation_id__in=self._corporation_ids(),
+            roles__role=self.role,
+            roles__location=(CharacterRole.Location.UNIVERSAL),
+        )
+        if not self.include_alts:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+        )
+
+        user_with_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
+
+        output = {}
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
+
+        return output
+
+    def _corporation_ids(self) -> List[int]:
+        """Return Eve IDs of corporations in this filter."""
+        return list(self.corporations.values_list("corporation_id", flat=True))
 
 
 class SkillPointFilter(BaseFilter):
@@ -523,12 +588,26 @@ class SkillSetFilter(BaseFilter):
     SkillSetFilter
     """
 
+    class CharacterType(models.TextChoices):
+        """A character type."""
+
+        ANY = "AN", _("any")
+        MAINS_ONLY = "MO", _("mains only")
+        ALTS_ONLY = "AO", _("alts only")
+
     skill_sets = models.ManyToManyField(
         SkillSet,
         help_text=_(
-            "Users must possess all of the skills in <strong>one</strong> of the "
-            "selected skill sets."
+            "Users must have a character who possess all of the skills in "
+            "<strong>one</strong> of the selected skill sets."
         ),
+    )
+    character_type = models.CharField(
+        max_length=2,
+        choices=CharacterType.choices,
+        default=CharacterType.ANY,
+        blank=True,
+        help_text=_("Specify the type of character that needs to have the skill set."),
     )
 
     @property
@@ -546,17 +625,16 @@ class SkillSetFilter(BaseFilter):
         :param user:
         :return:
         """
-
-        characters = Character.objects.owned_by_user(user=user)
-
-        for character in characters:
-            for check in character.skill_set_checks.filter(
-                skill_set__in=self.skill_sets.all()
-            ):
-                if check.failed_required_skills.count() == 0:
-                    return True
-
-        return False
+        qs = CharacterSkillSetCheck.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            skill_set__in=list(self.skill_sets.all()),
+            failed_required_skills__isnull=True,
+        )
+        if self.character_type == self.CharacterType.MAINS_ONLY:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+        elif self.character_type == self.CharacterType.ALTS_ONLY:
+            qs = qs.filter(character__eve_character__userprofile__isnull=True)
+        return qs.exists()
 
     def audit_filter(self, users):
         """
@@ -567,25 +645,29 @@ class SkillSetFilter(BaseFilter):
         :rtype:
         """
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        qs = Character.objects.filter(
+            skill_set_checks__skill_set__in=list(self.skill_sets.all()),
+            skill_set_checks__failed_required_skills__isnull=True,
+        )
+        if self.character_type == self.CharacterType.MAINS_ONLY:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+        elif self.character_type == self.CharacterType.ALTS_ONLY:
+            qs = qs.filter(eve_character__userprofile__isnull=True)
+        matching_characters = qs.values(
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+        )
 
-        for user in users:
-            chars = defaultdict(list)
-            characters = Character.objects.owned_by_user(user=user)
+        user_with_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-            for character in characters:
-                for check in character.skill_set_checks.filter(
-                    skill_set__in=self.skill_sets.all()
-                ):
-                    if check.failed_required_skills.count() == 0:
-                        chars[character.user.pk].append(
-                            character.eve_character.character_name
-                        )
-
-                        for char_user, char_list in chars.items():
-                            output[char_user] = {
-                                "message": ", ".join(sorted(char_list)),
-                                "check": True,
-                            }
+        output = {}
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
 
         return output

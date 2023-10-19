@@ -6,19 +6,18 @@ requires = [
 
 [project]
 name = "aa-memberaudit-securegroups"
-version = "0.5.0"
-description = "Member Audit Secure Groups integration for Alliance Auth"
+description = "Member Audit Secure Groups integration for Alliance Auth."
 readme = "README.md"
 keywords = [
     "allianceauth",
     "memberaudit",
     "securegroups",
 ]
-license = {file = "LICENSE"}
-maintainers = [
-    { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
-]
+license = { file = "LICENSE" }
+maintainers = [{ name = "Peter Pfeufer", email = "develop@ppfeufer.de" }]
 authors = [
+    { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
+    { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
     { name = "Rebecca Murphy", email = "rebecca@rcmurphy.me" },
 ]
 requires-python = "~=3.8"
@@ -39,8 +38,11 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
+dynamic = [
+    "version",
+]
 dependencies = [
-    "aa-memberaudit>=2",
+    "aa-memberaudit>=3.3.1",
     "allianceauth>=3",
     "allianceauth-securegroups>=0.5.1",
 ]
@@ -52,6 +54,7 @@ Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git
 Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
 
 [tool.hatch.build]
-include = [
-    "/memberaudit_securegroups",
-]
+include = ["/memberaudit_securegroups"]
+
+[tool.hatch.version]
+path = "memberaudit_securegroups/__init__.py"
