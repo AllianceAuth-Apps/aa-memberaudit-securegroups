@@ -6,6 +6,7 @@ from django.test import TestCase
 from allianceauth.eveonline.models import EveCorporationInfo
 
 # Member Audit
+from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories import (
     create_character_asset,
@@ -163,7 +164,7 @@ class TestComplianceFilter(TestCase):
         expected = {
             self.user.pk: {
                 "check": True,
-                "message": "All characters have been added to Member Audit",
+                "message": f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
             }
         }
         self.assertDictEqual(result, expected)
@@ -682,3 +683,15 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         # then
         expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
+
+    def test_should_default_to_any_as_character_type(self):
+        # given
+        my_filter = SkillSetFilter.objects.create(character_type="")
+        my_filter.skill_sets.add(
+            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        )
+        create_character_skill_set_check(
+            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        )
+
+        self.assertEqual(my_filter.character_type, SkillSetFilter.CharacterType.ANY)
