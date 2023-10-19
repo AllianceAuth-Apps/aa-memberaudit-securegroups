@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+## \[0.6.0\] - 2023-10-19
+
+### Added
+
+- Support for corporation role filter (Thanks to @ErikKalkoken)
+- Character type selector to skill set filter (This allows to create auto groups for
+  something like fax alts) (Thanks to @ErikKalkoken)
+
+### Fixed
+
+- Capitalization for translatable strings
+
+### Changed
+
+- Page load of asset filter form improved (Thanks to @ErikKalkoken)
+- Performance of asset and compliance filters improved (Thanks to @ErikKalkoken)
+- App renamed, so it is sorted next to "Secure Groups" on the admin page (since those
+  two are used together) (Thanks to @ErikKalkoken)
+- Dependency to Member Audit
+  - aa-memberaudit>=3.3.1
+- Translations updated
+
 ## \[0.5.0\] - 2023-09-02
 
 ### Added

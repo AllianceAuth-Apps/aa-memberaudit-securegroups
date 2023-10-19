@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-21 11:31+0200\n"
-"PO-Revision-Date: 2023-08-15 19:40+0000\n"
-"Last-Translator: Zigor Fernandez Moreno <sietehierros@gmail.com>\n"
-"Language-Team: Spanish <https://weblate.ppfeufer.de/projects/"
-"alliance-auth-apps/aa-member-audit-secure-groups-integration/es/>\n"
+"POT-Creation-Date: 2023-09-24 15:31+0200\n"
+"PO-Revision-Date: 2023-09-24 13:14+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Spanish <https://weblate.ppfeufer.de/projects/alliance-auth-"
+"apps/aa-member-audit-secure-groups-integration/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.18.2\n"
+"X-Generator: Weblate 5.0.2\n"
 
 #: admin.py:49
 #, python-brace-format
@@ -36,11 +36,15 @@ msgid "The filter description that is shown to end users."
 msgstr "La descripción del filtro que se muestra a los usuarios finales."
 
 #: models.py:131
-msgid "Please Create a filter!"
+#, fuzzy
+#| msgid "Please Create a filter!"
+msgid "Please create a filter!"
 msgstr "¡Por favor crea un filtro!"
 
 #: models.py:142
-msgid "Please Create an audit function!"
+#, fuzzy
+#| msgid "Please Create an audit function!"
+msgid "Please create an audit function!"
 msgstr "¡Por favor cree una función de auditoría!"
 
 #: models.py:151
@@ -60,8 +64,11 @@ msgid "Activity [Last {inactivity_threshold}]"
 msgstr "Actividad [por última vez {inactivity_threshold}]"
 
 #: models.py:219
-msgid "Active Character: "
-msgid_plural "Active Characters: "
+#, fuzzy
+#| msgid "Active Character: "
+#| msgid_plural "Active Characters: "
+msgid "Active character: "
+msgid_plural "Active characters: "
 msgstr[0] "Personaje Activo: "
 msgstr[1] "Personajes Activos: "
 
@@ -77,13 +84,15 @@ msgstr[0] "día {self.age_threshold:d}"
 msgstr[1] "días {self.age_threshold:d}"
 
 #: models.py:252
-#, python-brace-format
-msgid "Character Age [{age_threshold}]"
+#, fuzzy, python-brace-format
+#| msgid "Character Age [{age_threshold}]"
+msgid "Character age [{age_threshold}]"
 msgstr "Edad del Personaje [{age_threshold}]"
 
 #: models.py:310
 msgid "User must possess <strong>one</strong> of the selected assets."
-msgstr "El usuario debe tener <strong>uno</strong> de los bienes seleccionados."
+msgstr ""
+"El usuario debe tener <strong>uno</strong> de los bienes seleccionados."
 
 #: models.py:320
 msgid "Member Audit Asset"
@@ -110,7 +119,9 @@ msgstr[0] "Personaje que falta: "
 msgstr[1] "Personajes que faltan: "
 
 #: models.py:456
-msgid "Minimum allowable skillpoints."
+#, fuzzy
+#| msgid "Minimum allowable skillpoints."
+msgid "Minimum allowable skill points."
 msgstr "Puntos de habilidad mínimos permitidos."
 
 #: models.py:469
@@ -126,9 +137,13 @@ msgid "Member Audit Skill Points [{skill_point_threshold}]"
 msgstr "Auditoría de Miembro Puntos de Habilidad [{skill_point_threshold}]"
 
 #: models.py:529
+#, fuzzy
+#| msgid ""
+#| "Users must possess all of the skills in <strong>one</strong> of the "
+#| "selected skillsets."
 msgid ""
 "Users must possess all of the skills in <strong>one</strong> of the selected "
-"skillsets."
+"skill sets."
 msgstr ""
 "Los usuarios deben tener todas las habilidades en <strong>uno</strong> de "
 "los conjuntos de habilidades seleccionados."

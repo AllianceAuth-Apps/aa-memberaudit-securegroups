@@ -2,12 +2,21 @@
 Admin pages
 """
 
+# Standard Library
+from typing import Any
+
 # Third Party
 import humanize
 
 # Django
 from django.contrib import admin
+from django.db.models.query import QuerySet
+from django.http.request import HttpRequest
+from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
+
+# Member Audit
+from memberaudit.models import CharacterRole
 
 # Memberaudit Securegroups
 from memberaudit_securegroups.models import (
@@ -15,6 +24,7 @@ from memberaudit_securegroups.models import (
     AgeFilter,
     AssetFilter,
     ComplianceFilter,
+    CorporationRoleFilter,
     SkillPointFilter,
     SkillSetFilter,
 )
@@ -72,8 +82,19 @@ class AssetFilterAdmin(admin.ModelAdmin):
     AssetFilterAdmin
     """
 
-    list_display = ("description",)
-    filter_horizontal = ("assets",)
+    list_display = ("description", "_assets")
+    autocomplete_fields = ["assets"]
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("assets")
+
+    @admin.display()
+    def _assets(self, obj) -> str:
+        objs = obj.assets.all()
+
+        return ", ".join(sorted([obj.name for obj in objs]))
 
 
 @admin.register(ComplianceFilter)
@@ -83,6 +104,52 @@ class ComplianceFilterAdmin(SingletonModelAdmin):
     """
 
     list_display = ("description",)
+
+
+class CorporationRoleListFilter(admin.SimpleListFilter):
+    title = _("corporation role")
+    parameter_name = "corporation_role"
+
+    def lookups(self, request, model_admin):
+        """
+        Return lookups with used roles only.
+        """
+
+        roles = set(model_admin.get_queryset(request).values_list("role", flat=True))
+        result = [(role, CharacterRole.Role(role).label) for role in roles]
+
+        return sorted(result, key=lambda o: o[1])
+
+    def queryset(self, request, queryset):
+        """
+        Return queryset for selected role.
+        """
+
+        if value := self.value():
+            return queryset.filter(role=value)
+
+
+@admin.register(CorporationRoleFilter)
+class CorporationRoleFilterAdmin(admin.ModelAdmin):
+    """
+    CorporationRoleFilterAdmin
+    """
+
+    list_display = ("description", "role", "_corporations")
+    list_filter = (CorporationRoleListFilter,)
+    filter_horizontal = ("corporations",)
+    fields = ("description", "role", "corporations", "include_alts")
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("corporations")
+
+    @admin.display()
+    def _corporations(self, obj) -> str:
+        objs = obj.corporations.all()
+
+        return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
 @admin.register(SkillPointFilter)
@@ -105,5 +172,16 @@ class SkillSetFilterAdmin(admin.ModelAdmin):
     SkillSetFilterAdmin
     """
 
-    list_display = ("description",)
+    list_display = ("description", "_skill_sets", "character_type")
     filter_horizontal = ("skill_sets",)
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("skill_sets")
+
+    @admin.display()
+    def _skill_sets(self, obj) -> str:
+        objs = obj.skill_sets.all()
+
+        return ", ".join(sorted([obj.name for obj in objs]))
