@@ -56,7 +56,7 @@ class SingletonModel(models.Model):
 
     def delete(self, *args, **kwargs):
         """
-        delete action
+        "Delete" action
         :param args:
         :param kwargs:
         :return:
@@ -74,7 +74,7 @@ class SingletonModel(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Save action
+        "Save" action
         :param args:
         :param kwargs:
         :return:
@@ -330,6 +330,7 @@ class AssetFilter(BaseFilter):
         :param user:
         :return:
         """
+
         return CharacterAsset.objects.filter(
             character__eve_character__character_ownership__user=user,
             eve_type__in=self.assets.all(),
@@ -343,6 +344,7 @@ class AssetFilter(BaseFilter):
         :return:
         :rtype:
         """
+
         matching_characters = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             assets__eve_type__in=list(self.assets.all()),
@@ -353,6 +355,7 @@ class AssetFilter(BaseFilter):
         )
 
         output_characters = defaultdict(list)
+
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             asset_name = user_id["asset_name"]
@@ -365,6 +368,7 @@ class AssetFilter(BaseFilter):
                 output_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {}
+
         for user_id, characters in output_characters.items():
             output[user_id] = {
                 "message": ", ".join(sorted(characters)),
@@ -389,14 +393,20 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         return _("Compliance")
 
     def process_filter(self, user: User) -> bool:
-        """Return True if is compliant, else False."""
+        """
+        Return True if the user is compliant, else False.
+        """
+
         unregistered_characters = EveCharacter.objects.filter(
             character_ownership__user=user, memberaudit_character__isnull=True
         )
+
         return not unregistered_characters.exists()
 
     def audit_filter(self, users) -> dict:
-        """Return audit data for compliant of give users."""
+        """
+        Return audit data for compliance of given users.
+        """
 
         unregistered_characters = EveCharacter.objects.filter(
             character_ownership__user__in=list(users),
@@ -404,6 +414,7 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         ).values("character_name", user_id=F("character_ownership__user_id"))
 
         user_with_unregistered_characters = defaultdict(list)
+
         for obj in unregistered_characters:
             character_name = obj["character_name"]
             user_with_unregistered_characters[obj["user_id"]].append(
@@ -415,8 +426,10 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         )
 
         output = {}
+
         for user_id in all_memberaudit_users_ids:
             unregistered_chars = user_with_unregistered_characters.get(user_id)
+
             if not unregistered_chars:
                 output[user_id] = {
                     "message": _(
@@ -440,12 +453,16 @@ class ComplianceFilter(BaseFilter, SingletonModel):
 
 
 class CorporationRoleFilter(BaseFilter):
-    """Filter for corporation roles."""
+    """
+    Filter for corporation roles.
+    """
 
     corporations = models.ManyToManyField(
         EveCorporationInfo,
         related_name="+",
-        help_text=_("The character with the role must be in one of these corporation."),
+        help_text=_(
+            "The character with the role must be in one of these corporations."
+        ),
     )
     role = models.CharField(
         max_length=3,
@@ -456,35 +473,47 @@ class CorporationRoleFilter(BaseFilter):
     include_alts = models.BooleanField(
         default=False,
         help_text=_(
-            "When True the filter will also include characters which are not mains."
+            "When True, the filter will also include the users alt-characters."
         ),
     )
 
     @property
     def name(self):
-        """Return name of this filter."""
+        """
+        Return name of this filter.
+        """
+
         return _("Member Audit Corporation Role")
 
     def process_filter(self, user: User) -> bool:
-        """Return True when filter applies to the user, else False."""
+        """
+        Return True when filter applies to the user, else False.
+        """
+
         qs = CharacterRole.objects.filter(
             character__eve_character__character_ownership__user=user,
             character__eve_character__corporation_id__in=self._corporation_ids(),
             role=self.role,
             location=CharacterRole.Location.UNIVERSAL,
         )
+
         if not self.include_alts:
             qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
         return qs.exists()
 
     def audit_filter(self, users: Iterable[User]) -> dict:
-        """Return result of filter audit for given users."""
+        """
+        Return result of filter audit for given users.
+        """
+
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
             roles__role=self.role,
             roles__location=(CharacterRole.Location.UNIVERSAL),
         )
+
         if not self.include_alts:
             qs = qs.filter(eve_character__userprofile__isnull=False)
 
@@ -494,11 +523,13 @@ class CorporationRoleFilter(BaseFilter):
         )
 
         user_with_characters = defaultdict(list)
+
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {}
+
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
                 "message": ", ".join(sorted(character_names)),
@@ -508,7 +539,10 @@ class CorporationRoleFilter(BaseFilter):
         return output
 
     def _corporation_ids(self) -> List[int]:
-        """Return Eve IDs of corporations in this filter."""
+        """
+        Return Eve IDs of corporations in this filter.
+        """
+
         return list(self.corporations.values_list("corporation_id", flat=True))
 
 
@@ -589,11 +623,13 @@ class SkillSetFilter(BaseFilter):
     """
 
     class CharacterType(models.TextChoices):
-        """A character type."""
+        """
+        A character type.
+        """
 
-        ANY = "AN", _("any")
-        MAINS_ONLY = "MO", _("mains only")
-        ALTS_ONLY = "AO", _("alts only")
+        ANY = "AN", _("Any")
+        MAINS_ONLY = "MO", _("Mains only")
+        ALTS_ONLY = "AO", _("Alts only")
 
     skill_sets = models.ManyToManyField(
         SkillSet,
@@ -610,6 +646,30 @@ class SkillSetFilter(BaseFilter):
         help_text=_("Specify the type of character that needs to have the skill set."),
     )
 
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
+        """
+        Saving action
+
+        :param force_insert:
+        :type force_insert:
+        :param force_update:
+        :type force_update:
+        :param using:
+        :type using:
+        :param update_fields:
+        :type update_fields:
+        :return:
+        :rtype:
+        """
+
+        # Make sure a character_type is set
+        if self.character_type == "":
+            self.character_type = self.CharacterType.ANY
+
+        super().save()
+
     @property
     def name(self):
         """
@@ -625,15 +685,18 @@ class SkillSetFilter(BaseFilter):
         :param user:
         :return:
         """
+
         qs = CharacterSkillSetCheck.objects.filter(
             character__eve_character__character_ownership__user=user,
             skill_set__in=list(self.skill_sets.all()),
             failed_required_skills__isnull=True,
         )
+
         if self.character_type == self.CharacterType.MAINS_ONLY:
             qs = qs.filter(character__eve_character__userprofile__isnull=False)
         elif self.character_type == self.CharacterType.ALTS_ONLY:
             qs = qs.filter(character__eve_character__userprofile__isnull=True)
+
         return qs.exists()
 
     def audit_filter(self, users):
@@ -649,21 +712,25 @@ class SkillSetFilter(BaseFilter):
             skill_set_checks__skill_set__in=list(self.skill_sets.all()),
             skill_set_checks__failed_required_skills__isnull=True,
         )
+
         if self.character_type == self.CharacterType.MAINS_ONLY:
             qs = qs.filter(eve_character__userprofile__isnull=False)
         elif self.character_type == self.CharacterType.ALTS_ONLY:
             qs = qs.filter(eve_character__userprofile__isnull=True)
+
         matching_characters = qs.values(
             user_id=F("eve_character__character_ownership__user_id"),
             character_name=F("eve_character__character_name"),
         )
 
         user_with_characters = defaultdict(list)
+
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {}
+
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
                 "message": ", ".join(sorted(character_names)),
