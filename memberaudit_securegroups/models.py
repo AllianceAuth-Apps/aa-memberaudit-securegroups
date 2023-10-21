@@ -62,7 +62,7 @@ class SingletonModel(models.Model):
         :return:
         """
 
-        pass
+        pass  # pylint: disable=unnecessary-pass
 
     def set_cache(self):
         """
@@ -133,7 +133,7 @@ class BaseFilter(models.Model):
         :return:
         """
 
-        raise NotImplementedError("Please create a filter!")
+        raise NotImplementedError(_("Please create a filter!"))
 
     def audit_filter(self, users):
         """
@@ -144,7 +144,7 @@ class BaseFilter(models.Model):
         :rtype:
         """
 
-        raise NotImplementedError("Please create an audit function!")
+        raise NotImplementedError(_("Please create an audit function!"))
 
 
 class ActivityFilter(BaseFilter):
@@ -356,24 +356,21 @@ class AssetFilter(BaseFilter):
 
         output_characters = defaultdict(list)
 
-        for user_id in matching_characters:
-            character_name = user_id["character_name"]
-            asset_name = user_id["asset_name"]
+        for character in matching_characters:
+            character_name = character["character_name"]
+            asset_name = character["asset_name"]
 
             if self.assets.all().count() > 1:
-                output_characters[user_id["user_id"]].append(
+                output_characters[character["user_id"]].append(
                     f"{character_name} ({asset_name})"
                 )
             else:
-                output_characters[user_id["user_id"]].append(f"{character_name}")
+                output_characters[character["user_id"]].append(f"{character_name}")
 
-        output = {}
+        output = defaultdict(lambda: {"message": "", "check": False})
 
-        for user_id, characters in output_characters.items():
-            output[user_id] = {
-                "message": ", ".join(sorted(characters)),
-                "check": True,
-            }
+        for character, char_list in output_characters.items():
+            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
 
         return output
 
@@ -395,6 +392,10 @@ class ComplianceFilter(BaseFilter, SingletonModel):
     def process_filter(self, user: User) -> bool:
         """
         Return True if the user is compliant, else False.
+        :param user:
+        :type user:
+        :return:
+        :rtype:
         """
 
         unregistered_characters = EveCharacter.objects.filter(
@@ -406,6 +407,10 @@ class ComplianceFilter(BaseFilter, SingletonModel):
     def audit_filter(self, users) -> dict:
         """
         Return audit data for compliance of given users.
+        :param users:
+        :type users:
+        :return:
+        :rtype:
         """
 
         unregistered_characters = EveCharacter.objects.filter(
@@ -528,7 +533,7 @@ class CorporationRoleFilter(BaseFilter):
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = {}
+        output = defaultdict(lambda: {"message": "", "check": False})
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
@@ -647,7 +652,11 @@ class SkillSetFilter(BaseFilter):
     )
 
     def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
+        self,
+        force_insert=False,  # pylint: disable=unused-argument
+        force_update=False,  # pylint: disable=unused-argument
+        using=None,  # pylint: disable=unused-argument
+        update_fields=None,  # pylint: disable=unused-argument
     ):
         """
         Saving action
@@ -729,7 +738,7 @@ class SkillSetFilter(BaseFilter):
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = {}
+        output = defaultdict(lambda: {"message": "", "check": False})
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {

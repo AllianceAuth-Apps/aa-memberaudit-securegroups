@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+## \[0.6.1\] - 2023-10-22
+
+### Fixed
+
+- Smart Group failed to process when filter requirements are not met
+
 ## \[0.6.0\] - 2023-10-19
 
 ### Added
