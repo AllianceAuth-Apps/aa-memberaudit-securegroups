@@ -31,11 +31,10 @@ from eveuniverse.models import EveType
 from memberaudit_securegroups.models import (
     AssetFilter,
     ComplianceFilter,
-    CorporationRoleFilter,
     SkillSetFilter,
 )
 
-from .factories import create_corporation_title_filter
+from .factories import create_corporation_role_filter, create_corporation_title_filter
 
 
 class TestAssetFilter(TestCase):
@@ -210,60 +209,61 @@ class TestCorporationRoleFilter(TestCase):
 
     def test_should_return_name(self):
         # given
-        my_filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR
-        )
+        my_filter = create_corporation_role_filter(corporations=[])
         # when/then
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_role(self):
         # given
-        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
-        filter.corporations.add(self.corporation_2001)
+        my_filter = create_corporation_role_filter(corporations=[self.corporation_2001])
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_character_with_role_in_corp(self):
         # given
-        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
-        filter.corporations.add(self.corporation_2001)
-        filter.corporations.add(self.corporation_2101)
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
+        )
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertTrue(filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_user_role_is_not_universal(self):
         # given
-        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
-        filter.corporations.add(self.corporation_2001)
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
+        )
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.OTHER,
         )
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_role_is_in_wrong_corp(self):
         # given
-        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
-        filter.corporations.add(self.corporation_2101)
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
+        )
+        my_filter.corporations.add(self.corporation_2101)
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_character_with_role_owned_by_other_user(self):
         # given
-        filter = CorporationRoleFilter.objects.create(role=CharacterRole.Role.DIRECTOR)
-        filter.corporations.add(self.corporation_2001)
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
+        )
         character_1002 = create_memberaudit_character(1002)
         character_1002.character_ownership.user
         create_character_role(
@@ -272,14 +272,15 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_role_is_not_main(self):
         # given filter for mains only
-        filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, include_alts=False
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001],
+            role=CharacterRole.Role.DIRECTOR,
+            include_alts=False,
         )
-        filter.corporations.add(self.corporation_2001)
         # and character has role, but is not main
         character_1002 = add_memberaudit_character_to_user(self.user, 1002)
         create_character_role(
@@ -288,14 +289,15 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_with_role_is_not_main_but_allowed(self):
         # given filter for mains only
-        filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, include_alts=True
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001],
+            role=CharacterRole.Role.DIRECTOR,
+            include_alts=True,
         )
-        filter.corporations.add(self.corporation_2001)
         # and character has role, but is not main
         character_1002 = add_memberaudit_character_to_user(self.user, 1002)
         create_character_role(
@@ -304,15 +306,15 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertTrue(filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
         # given
-        filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, include_alts=False
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001, self.corporation_2101],
+            role=CharacterRole.Role.DIRECTOR,
+            include_alts=False,
         )
-        filter.corporations.add(self.corporation_2001)
-        filter.corporations.add(self.corporation_2101)
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
@@ -332,7 +334,7 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when
-        result = filter.audit_filter([self.user, user_2])
+        result = my_filter.audit_filter([self.user, user_2])
         # then
         expected = {
             self.user.id: {"message": "Bruce Wayne", "check": True},
@@ -342,11 +344,11 @@ class TestCorporationRoleFilter(TestCase):
 
     def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
         # given
-        filter = CorporationRoleFilter.objects.create(
-            role=CharacterRole.Role.DIRECTOR, include_alts=True
+        my_filter = create_corporation_role_filter(
+            corporations=[self.corporation_2001, self.corporation_2101],
+            role=CharacterRole.Role.DIRECTOR,
+            include_alts=True,
         )
-        filter.corporations.add(self.corporation_2001)
-        filter.corporations.add(self.corporation_2101)
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
@@ -366,7 +368,7 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.UNIVERSAL,
         )
         # when
-        result = filter.audit_filter([self.user, user_2])
+        result = my_filter.audit_filter([self.user, user_2])
         # then
         expected = {
             self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
@@ -387,51 +389,51 @@ class TestCorporationTitleFilter(TestCase):
 
     def test_should_return_name(self):
         # given
-        my_filter = create_corporation_title_filter()
+        my_filter = create_corporation_title_filter(corporations=[])
 
         # when/then
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_title(self):
         # given
-        filter = create_corporation_title_filter()
+        my_filter = create_corporation_title_filter(corporations=[])
 
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_character_with_title_in_corp(self):
         # given
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001], title="Alpha"
         )
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertTrue(filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_not_return_true_when_user_has_character_with_title_but_corp_not_defined(
         self,
     ):
         # given
-        filter = create_corporation_title_filter(title="Alpha")
+        my_filter = create_corporation_title_filter(corporations=[], title="Alpha")
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_title_is_in_wrong_corp(self):
         # given
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2101], title="Alpha"
         )
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_character_with_title_is_owned_by_other_user(self):
         # given
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001], title="Alpha"
         )
         character_1002 = create_memberaudit_character(1002)
@@ -439,11 +441,11 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_title_is_not_main(self):
         # given filter for mains only
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001], title="Alpha", include_alts=False
         )
         # and owned character has title, but is not main
@@ -451,11 +453,11 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertFalse(filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_with_title_is_not_main_but_allowed(self):
         # given filter for mains only
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001], title="Alpha", include_alts=True
         )
 
@@ -464,11 +466,11 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertTrue(filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
         # given
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=False,
@@ -481,7 +483,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1101, name="Alpha")
 
         # when
-        result = filter.audit_filter([self.user, user_2])
+        result = my_filter.audit_filter([self.user, user_2])
         # then
         expected = {
             self.user.id: {"message": "Bruce Wayne", "check": True},
@@ -491,7 +493,7 @@ class TestCorporationTitleFilter(TestCase):
 
     def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
         # given
-        filter = create_corporation_title_filter(
+        my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=True,
@@ -504,7 +506,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1101, name="Alpha")
 
         # when
-        result = filter.audit_filter([self.user, user_2])
+        result = my_filter.audit_filter([self.user, user_2])
         # then
         expected = {
             self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
