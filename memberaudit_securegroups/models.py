@@ -28,6 +28,7 @@ from memberaudit.models import (
     CharacterAsset,
     CharacterRole,
     CharacterSkillSetCheck,
+    CharacterTitle,
     General,
     SkillSet,
 )
@@ -517,6 +518,97 @@ class CorporationRoleFilter(BaseFilter):
             eve_character__corporation_id__in=self._corporation_ids(),
             roles__role=self.role,
             roles__location=(CharacterRole.Location.UNIVERSAL),
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+        )
+
+        user_with_characters = defaultdict(list)
+
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
+
+        return output
+
+    def _corporation_ids(self) -> List[int]:
+        """
+        Return Eve IDs of corporations in this filter.
+        """
+
+        return list(self.corporations.values_list("corporation_id", flat=True))
+
+
+class CorporationTitleFilter(BaseFilter):
+    """
+    Filter for corporation titles.
+    """
+
+    corporations = models.ManyToManyField(
+        EveCorporationInfo,
+        related_name="+",
+        help_text=_(
+            "The character with the title must be in one of these corporations."
+        ),
+    )
+    title = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text=_("User must have a character with this title."),
+    )
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True, the filter will also include the users alt-characters."
+        ),
+    )
+
+    @property
+    def name(self):
+        """
+        Return name of this filter.
+        """
+
+        return _("Member Audit Corporation Title")
+
+    def process_filter(self, user: User) -> bool:
+        """
+        Return True when filter applies to the user, else False.
+        """
+
+        qs = CharacterTitle.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            character__eve_character__corporation_id__in=self._corporation_ids(),
+            name=self.title,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        return qs.exists()
+
+    def audit_filter(self, users: Iterable[User]) -> dict:
+        """
+        Return result of filter audit for given users.
+        """
+
+        qs = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            eve_character__corporation_id__in=self._corporation_ids(),
+            titles__name=self.title,
         )
 
         if not self.include_alts:

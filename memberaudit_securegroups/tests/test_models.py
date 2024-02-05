@@ -1,5 +1,4 @@
 # Django
-# Django
 from django.test import TestCase
 
 # Alliance Auth
@@ -12,6 +11,7 @@ from memberaudit.tests.testdata.factories import (
     create_character_asset,
     create_character_role,
     create_character_skill_set_check,
+    create_character_title,
     create_skill_set,
     create_skill_set_skill,
 )
@@ -34,6 +34,8 @@ from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     SkillSetFilter,
 )
+
+from .factories import create_corporation_title_filter
 
 
 class TestAssetFilter(TestCase):
@@ -363,6 +365,144 @@ class TestCorporationRoleFilter(TestCase):
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.UNIVERSAL,
         )
+        # when
+        result = filter.audit_filter([self.user, user_2])
+        # then
+        expected = {
+            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
+            user_2.id: {"message": "Lex Luther", "check": True},
+        }
+        self.assertDictEqual(result, expected)
+
+
+class TestCorporationTitleFilter(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+        cls.character = create_memberaudit_character(1001)
+        cls.user = cls.character.character_ownership.user
+        cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
+        cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
+
+    def test_should_return_name(self):
+        # given
+        my_filter = create_corporation_title_filter()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_false_when_user_does_not_have_title(self):
+        # given
+        filter = create_corporation_title_filter()
+
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_true_when_user_has_character_with_title_in_corp(self):
+        # given
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001], title="Alpha"
+        )
+        create_character_title(character=self.character, name="Alpha")
+
+        # when/then
+        self.assertTrue(filter.process_filter(self.user))
+
+    def test_should_not_return_true_when_user_has_character_with_title_but_corp_not_defined(
+        self,
+    ):
+        # given
+        filter = create_corporation_title_filter(title="Alpha")
+        create_character_title(character=self.character, name="Alpha")
+
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_false_when_character_with_title_is_in_wrong_corp(self):
+        # given
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2101], title="Alpha"
+        )
+        create_character_title(character=self.character, name="Alpha")
+
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_false_character_with_title_is_owned_by_other_user(self):
+        # given
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001], title="Alpha"
+        )
+        character_1002 = create_memberaudit_character(1002)
+        character_1002.character_ownership.user
+        create_character_title(character=character_1002, name="Alpha")
+
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_false_when_character_with_title_is_not_main(self):
+        # given filter for mains only
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001], title="Alpha", include_alts=False
+        )
+        # and owned character has title, but is not main
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        create_character_title(character=character_1002, name="Alpha")
+
+        # when/then
+        self.assertFalse(filter.process_filter(self.user))
+
+    def test_should_return_true_when_character_with_title_is_not_main_but_allowed(self):
+        # given filter for mains only
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001], title="Alpha", include_alts=True
+        )
+
+        # and character has title, but is not main
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        create_character_title(character=character_1002, name="Alpha")
+
+        # when/then
+        self.assertTrue(filter.process_filter(self.user))
+
+    def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
+        # given
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001, self.corporation_2101],
+            title="Alpha",
+            include_alts=False,
+        )
+        create_character_title(character=self.character, name="Alpha")
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        create_character_title(character=character_1002, name="Alpha")
+        character_1101 = create_memberaudit_character(1101)
+        user_2 = character_1101.character_ownership.user
+        create_character_title(character=character_1101, name="Alpha")
+
+        # when
+        result = filter.audit_filter([self.user, user_2])
+        # then
+        expected = {
+            self.user.id: {"message": "Bruce Wayne", "check": True},
+            user_2.id: {"message": "Lex Luther", "check": True},
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
+        # given
+        filter = create_corporation_title_filter(
+            corporations=[self.corporation_2001, self.corporation_2101],
+            title="Alpha",
+            include_alts=True,
+        )
+        create_character_title(character=self.character, name="Alpha")
+        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        create_character_title(character=character_1002, name="Alpha")
+        character_1101 = create_memberaudit_character(1101)
+        user_2 = character_1101.character_ownership.user
+        create_character_title(character=character_1101, name="Alpha")
+
         # when
         result = filter.audit_filter([self.user, user_2])
         # then
