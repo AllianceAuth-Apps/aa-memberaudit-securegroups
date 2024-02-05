@@ -25,6 +25,7 @@ from memberaudit_securegroups.models import (
     AssetFilter,
     ComplianceFilter,
     CorporationRoleFilter,
+    CorporationTitleFilter,
     SkillPointFilter,
     SkillSetFilter,
 )
@@ -139,6 +140,28 @@ class CorporationRoleFilterAdmin(admin.ModelAdmin):
     list_filter = (CorporationRoleListFilter,)
     filter_horizontal = ("corporations",)
     fields = ("description", "role", "corporations", "include_alts")
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("corporations")
+
+    @admin.display()
+    def _corporations(self, obj) -> str:
+        objs = obj.corporations.all()
+
+        return ", ".join(sorted([obj.corporation_name for obj in objs]))
+
+
+@admin.register(CorporationTitleFilter)
+class CorporationTitleFilterAdmin(admin.ModelAdmin):
+    """
+    CorporationTitleFilterAdmin
+    """
+
+    list_display = ("description", "title", "_corporations")
+    filter_horizontal = ("corporations",)
+    fields = ("description", "title", "corporations", "include_alts")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         qs = super().get_queryset(request)
