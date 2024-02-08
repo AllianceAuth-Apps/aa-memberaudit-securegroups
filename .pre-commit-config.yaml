@@ -29,6 +29,11 @@ repos:
 
       # Python checks
       - id: check-docstring-first
+        exclude: |
+          (?x)^(
+              testauth/settings_aa3/local.py|
+              testauth/settings_aa4/local.py
+          )$
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: fix-encoding-pragma
