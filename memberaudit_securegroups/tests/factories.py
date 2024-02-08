@@ -11,6 +11,7 @@ from memberaudit.models import CharacterRole
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,
+    MinimumCorporationMembership,
 )
 
 
@@ -33,4 +34,15 @@ def create_corporation_title_filter(
     obj: CorporationTitleFilter = CorporationTitleFilter.objects.create(**params)
     if corporations:
         obj.corporations.add(*list(corporations))
+    return obj
+
+
+def create_minimum_corporation_membership_filter(
+    **kwargs,
+) -> MinimumCorporationMembership:
+    params = {"days": 30}
+    params.update(kwargs)
+    obj: MinimumCorporationMembership = MinimumCorporationMembership.objects.create(
+        **params
+    )
     return obj

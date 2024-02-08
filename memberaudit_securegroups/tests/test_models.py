@@ -1,5 +1,10 @@
+# Standard Library
+import datetime as dt
+
 # Django
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils.timezone import now
 
 # Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
@@ -9,6 +14,7 @@ from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories import (
     create_character_asset,
+    create_character_corporation_history,
     create_character_role,
     create_character_skill_set_check,
     create_character_title,
@@ -25,7 +31,7 @@ from memberaudit.tests.utils import (
 )
 
 # Alliance Auth (External Libs)
-from eveuniverse.models import EveType
+from eveuniverse.models import EveEntity, EveType
 
 # Memberaudit Securegroups
 from memberaudit_securegroups.models import (
@@ -34,7 +40,11 @@ from memberaudit_securegroups.models import (
     SkillSetFilter,
 )
 
-from .factories import create_corporation_role_filter, create_corporation_title_filter
+from .factories import (
+    create_corporation_role_filter,
+    create_corporation_title_filter,
+    create_minimum_corporation_membership_filter,
+)
 
 
 class TestAssetFilter(TestCase):
@@ -513,6 +523,95 @@ class TestCorporationTitleFilter(TestCase):
             user_2.id: {"message": "Lex Luther", "check": True},
         }
         self.assertDictEqual(result, expected)
+
+
+class TestMinimumCorporationMembershipFilter(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        load_entities()
+        cls.character = create_memberaudit_character(1001)
+        cls.user_1001 = cls.character.character_ownership.user
+        cls.corporation_2001 = EveEntity.objects.get(id=2001)
+        cls.corporation_2002 = EveEntity.objects.get(id=2002)
+
+    def test_should_return_name(self):
+        # given
+        my_filter = create_minimum_corporation_membership_filter()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_true_when_main_membership_was_long_enough(self):
+        # given
+        create_character_corporation_history(
+            character=self.character,
+            corporation=self.corporation_2001,
+            start_date=now() - dt.timedelta(days=30),
+        )
+        my_filter = create_minimum_corporation_membership_filter(days=30)
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(self.user_1001))
+
+    def test_should_return_false_when_main_membership_was_not_long_enough(self):
+        # given
+        create_character_corporation_history(
+            character=self.character,
+            corporation=self.corporation_2001,
+            start_date=now() - dt.timedelta(days=29),
+        )
+        my_filter = create_minimum_corporation_membership_filter(days=30)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user_1001))
+
+    def test_should_return_false_when_no_membership_data_for_main(self):
+        # given
+        my_filter = create_minimum_corporation_membership_filter(days=30)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(self.user_1001))
+
+    def test_should_return_false_when_user_has_no_memberaudit_character(self):
+        # given
+        my_filter = create_minimum_corporation_membership_filter(days=30)
+        user, _ = create_user_from_evecharacter_with_access(1002)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_audit_data_with_one_user_passing_and_one_not_passing(self):
+        # given
+        my_filter = create_minimum_corporation_membership_filter(days=30)
+        create_character_corporation_history(
+            character=self.character,
+            corporation=self.corporation_2001,
+            start_date=now() - dt.timedelta(days=30),
+        )
+        character_1101 = create_memberaudit_character(1101)
+        user_1101 = character_1101.user
+        create_character_corporation_history(
+            record_id=1,
+            character=character_1101,
+            corporation=self.corporation_2002,
+            start_date=now() - dt.timedelta(days=100),
+        )
+        create_character_corporation_history(
+            record_id=2,
+            character=character_1101,
+            corporation=self.corporation_2001,
+            start_date=now() - dt.timedelta(days=29),
+        )
+        users = User.objects.filter(pk__in=[self.user_1001.pk, user_1101.pk])
+        # when
+        result = my_filter.audit_filter(users)
+        # then
+        expected = {
+            self.user_1001.id: {"message": "30 days", "check": True},
+            user_1101.id: {"message": "29 days", "check": False},
+        }
+        self.assertDictEqual(dict(result), expected)
 
 
 class TestSkillSetFilterBase(TestCase):
