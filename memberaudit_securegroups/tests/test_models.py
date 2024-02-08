@@ -43,7 +43,7 @@ from memberaudit_securegroups.models import (
 from .factories import (
     create_corporation_role_filter,
     create_corporation_title_filter,
-    create_minimum_corporation_membership_filter,
+    create_time_in_corporation_filter,
 )
 
 
@@ -537,7 +537,7 @@ class TestMinimumCorporationMembershipFilter(TestCase):
 
     def test_should_return_name(self):
         # given
-        my_filter = create_minimum_corporation_membership_filter()
+        my_filter = create_time_in_corporation_filter()
 
         # when/then
         self.assertTrue(my_filter.name)
@@ -549,7 +549,7 @@ class TestMinimumCorporationMembershipFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=30),
         )
-        my_filter = create_minimum_corporation_membership_filter(days=30)
+        my_filter = create_time_in_corporation_filter(minimum_days=30)
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1001))
@@ -561,21 +561,21 @@ class TestMinimumCorporationMembershipFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=29),
         )
-        my_filter = create_minimum_corporation_membership_filter(days=30)
+        my_filter = create_time_in_corporation_filter(minimum_days=30)
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1001))
 
     def test_should_return_false_when_no_membership_data_for_main(self):
         # given
-        my_filter = create_minimum_corporation_membership_filter(days=30)
+        my_filter = create_time_in_corporation_filter(minimum_days=30)
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1001))
 
     def test_should_return_false_when_user_has_no_memberaudit_character(self):
         # given
-        my_filter = create_minimum_corporation_membership_filter(days=30)
+        my_filter = create_time_in_corporation_filter(minimum_days=30)
         user, _ = create_user_from_evecharacter_with_access(1002)
 
         # when/then
@@ -583,7 +583,7 @@ class TestMinimumCorporationMembershipFilter(TestCase):
 
     def test_should_return_audit_data_with_one_user_passing_and_one_not_passing(self):
         # given
-        my_filter = create_minimum_corporation_membership_filter(days=30)
+        my_filter = create_time_in_corporation_filter(minimum_days=30)
         create_character_corporation_history(
             character=self.character,
             corporation=self.corporation_2001,

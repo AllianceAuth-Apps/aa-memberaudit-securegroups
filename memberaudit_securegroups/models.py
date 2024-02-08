@@ -555,75 +555,6 @@ class CorporationRoleFilter(BaseFilter):
         return list(self.corporations.values_list("corporation_id", flat=True))
 
 
-class MinimumCorporationMembership(BaseFilter):
-    days = models.PositiveIntegerField(
-        default=30,
-        help_text=(
-            "The minimum amount of days a main character needs to be member "
-            "of his current corporation."
-        ),
-    )
-
-    @property
-    def name(self):
-        """
-        Return name of this filter.
-        """
-
-        return _("Member Audit Minimum Corporation Membership")
-
-    def process_filter(self, user: User) -> bool:
-        """
-        Return True when filter applies to the user, else False.
-        """
-
-        try:
-            character = user.profile.main_character.memberaudit_character
-        except (ObjectDoesNotExist, AttributeError):
-            return False
-
-        history = (
-            character.corporation_history.exclude(is_deleted=True)
-            .order_by("-record_id")
-            .first()
-        )
-        if not history:
-            return False
-
-        passes = (now() - history.start_date).days >= self.days
-        return passes
-
-    def audit_filter(self, users: Iterable[User]) -> dict:
-        """
-        Return result of filter audit for given users.
-        """
-
-        current_membership = (
-            CharacterCorporationHistory.objects.filter(
-                character=OuterRef("profile__main_character__memberaudit_character__pk")
-            )
-            .exclude(is_deleted=True)
-            .order_by("-record_id")
-        )
-        users_days_in_corporation = users.annotate(
-            start_date=Subquery(current_membership.values("start_date")[:1])
-        )
-
-        output = defaultdict(lambda: {"message": "", "check": False})
-        for user in users_days_in_corporation:
-            if not user.start_date:
-                check = False
-                msg = "No audit info"
-            else:
-                days_in_corporation = (now() - user.start_date).days
-                check = days_in_corporation >= self.days
-                msg = f"{days_in_corporation} days"
-
-            output[user.id] = {"message": msg, "check": check}
-
-        return output
-
-
 class CorporationTitleFilter(BaseFilter):
     """
     Filter for corporation titles.
@@ -909,5 +840,74 @@ class SkillSetFilter(BaseFilter):
                 "message": ", ".join(sorted(character_names)),
                 "check": True,
             }
+
+        return output
+
+
+class TimeInCorporationFilter(BaseFilter):
+    minimum_days = models.PositiveIntegerField(
+        default=30,
+        help_text=(
+            "Minimum number of days a main character needs to be member "
+            "of his/her current corporation."
+        ),
+    )
+
+    @property
+    def name(self):
+        """
+        Return name of this filter.
+        """
+
+        return _("Member Audit Minimum Corporation Membership")
+
+    def process_filter(self, user: User) -> bool:
+        """
+        Return True when filter applies to the user, else False.
+        """
+
+        try:
+            character = user.profile.main_character.memberaudit_character
+        except (ObjectDoesNotExist, AttributeError):
+            return False
+
+        history = (
+            character.corporation_history.exclude(is_deleted=True)
+            .order_by("-record_id")
+            .first()
+        )
+        if not history:
+            return False
+
+        passes = (now() - history.start_date).days >= self.minimum_days
+        return passes
+
+    def audit_filter(self, users: Iterable[User]) -> dict:
+        """
+        Return result of filter audit for given users.
+        """
+
+        current_membership = (
+            CharacterCorporationHistory.objects.filter(
+                character=OuterRef("profile__main_character__memberaudit_character__pk")
+            )
+            .exclude(is_deleted=True)
+            .order_by("-record_id")
+        )
+        users_days_in_corporation = users.annotate(
+            start_date=Subquery(current_membership.values("start_date")[:1])
+        )
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+        for user in users_days_in_corporation:
+            if not user.start_date:
+                check = False
+                msg = "No audit info"
+            else:
+                days_in_corporation = (now() - user.start_date).days
+                check = days_in_corporation >= self.minimum_days
+                msg = f"{days_in_corporation} days"
+
+            output[user.id] = {"message": msg, "check": check}
 
         return output

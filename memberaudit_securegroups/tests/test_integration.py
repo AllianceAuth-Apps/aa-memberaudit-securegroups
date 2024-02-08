@@ -26,7 +26,7 @@ from eveuniverse.models import EveEntity
 
 from .factories import (
     create_corporation_title_filter,
-    create_minimum_corporation_membership_filter,
+    create_time_in_corporation_filter,
 )
 
 
@@ -67,7 +67,7 @@ class TestFilters(TestCase):
         self.assertIn(user_1001, self.group.user_set.all())
         self.assertNotIn(user_1002, self.group.user_set.all())
 
-    def test_corporation_membership_filter(self):
+    def test_time_in_corporation_filter(self):
         # given
         character_1001 = create_memberaudit_character(1001)
         user_1001 = character_1001.user
@@ -85,7 +85,7 @@ class TestFilters(TestCase):
             start_date=now() - dt.timedelta(days=29),
         )
 
-        create_minimum_corporation_membership_filter(days=30)
+        create_time_in_corporation_filter(minimum_days=30)
         smart_group = SmartGroup.objects.create(group=self.group, auto_group=True)
         my_filter = SmartFilter.objects.first()
         smart_group.filters.add(my_filter)
