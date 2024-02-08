@@ -859,7 +859,7 @@ class TimeInCorporationFilter(BaseFilter):
         Return name of this filter.
         """
 
-        return _("Member Audit Minimum Corporation Membership")
+        return _("Member Audit Time in Corporation Filter")
 
     def process_filter(self, user: User) -> bool:
         """

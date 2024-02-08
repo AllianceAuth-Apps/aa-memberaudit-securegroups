@@ -96,7 +96,7 @@ class TestFilters(TestCase):
         # then
         self.assertEqual(
             my_filter.filter_object.name,
-            "Member Audit Minimum Corporation Membership",
+            "Member Audit Time in Corporation Filter",
         )
         self.assertIn(user_1001, self.group.user_set.all())
         self.assertNotIn(user_1002, self.group.user_set.all())
