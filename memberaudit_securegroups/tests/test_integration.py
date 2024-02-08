@@ -1,3 +1,6 @@
+# Standard Library
+import datetime as dt
+
 # Third Party
 from securegroups.models import SmartFilter, SmartGroup
 from securegroups.tasks import run_smart_group_update
@@ -5,27 +8,39 @@ from securegroups.tasks import run_smart_group_update
 # Django
 from django.contrib.auth.models import Group
 from django.test import TestCase
+from django.utils.timezone import now
 
 # Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
 
 # Member Audit
-from memberaudit.tests.testdata.factories import create_character_title
+from memberaudit.tests.testdata.factories import (
+    create_character_corporation_history,
+    create_character_title,
+)
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.utils import create_memberaudit_character
 
-from .factories import create_corporation_title_filter
+# Alliance Auth (External Libs)
+from eveuniverse.models import EveEntity
+
+from .factories import (
+    create_corporation_title_filter,
+    create_minimum_corporation_membership_filter,
+)
 
 
-class TestCorporationTitleFilter(TestCase):
+class TestFilters(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
         cls.group = Group.objects.create(name="Leadership")
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
+        cls.corporation_entity_2001 = EveEntity.objects.get(id=2001)
+        cls.corporation_entity_2002 = EveEntity.objects.get(id=2002)
 
-    def test_should_only_add_user__with_matching_title_to_group(self):
+    def test_corporation_title_filter(self):
         # given
         character_1001 = create_memberaudit_character(1001)  # in corp 2001
         user_1001 = character_1001.character_ownership.user
@@ -48,6 +63,40 @@ class TestCorporationTitleFilter(TestCase):
         # then
         self.assertEqual(
             title_filter.filter_object.name, "Member Audit Corporation Title"
+        )
+        self.assertIn(user_1001, self.group.user_set.all())
+        self.assertNotIn(user_1002, self.group.user_set.all())
+
+    def test_corporation_membership_filter(self):
+        # given
+        character_1001 = create_memberaudit_character(1001)
+        user_1001 = character_1001.user
+        create_character_corporation_history(
+            character=character_1001,
+            corporation=self.corporation_entity_2001,
+            start_date=now() - dt.timedelta(days=31),
+        )
+
+        character_1002 = create_memberaudit_character(1002)
+        user_1002 = character_1002.user
+        create_character_corporation_history(
+            character=character_1002,
+            corporation=self.corporation_entity_2001,
+            start_date=now() - dt.timedelta(days=29),
+        )
+
+        create_minimum_corporation_membership_filter(days=30)
+        smart_group = SmartGroup.objects.create(group=self.group, auto_group=True)
+        my_filter = SmartFilter.objects.first()
+        smart_group.filters.add(my_filter)
+
+        # when
+        run_smart_group_update(smart_group.id)
+
+        # then
+        self.assertEqual(
+            my_filter.filter_object.name,
+            "Member Audit Minimum Corporation Membership",
         )
         self.assertIn(user_1001, self.group.user_set.all())
         self.assertNotIn(user_1002, self.group.user_set.all())
