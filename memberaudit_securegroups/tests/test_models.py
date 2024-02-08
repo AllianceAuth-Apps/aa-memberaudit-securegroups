@@ -91,36 +91,53 @@ class TestAssetFilter(TestCase):
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
-    def test_should_return_audit_data_for_two_users(self):
+    def test_should_return_audit_data_for_one_matching_one_not_matching_user(self):
         # given a filter for Merlins
         my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
+
         # and main user's character has a Merlin
         create_character_asset(character=self.character, eve_type=merlin_type)
+
         # and main user's 2nd character also has a Merlin
         character_1002 = add_memberaudit_character_to_user(self.user, 1002)
         create_character_asset(character=character_1002, eve_type=merlin_type)
-        # and a 2nd user has a character with a Merlin
+
+        # and a 2nd user has a registered character, but no Merlin
         character_1003 = create_memberaudit_character(1003)
         user_1002 = character_1003.character_ownership.user
-        create_character_asset(character=character_1003, eve_type=merlin_type)
+        # and a 3rd user is not registered
+        user_1101, _ = create_user_from_evecharacter_with_access(1101)
+
         # when
-        result = my_filter.audit_filter([self.user, user_1002])
+        users = make_user_queryset(self.user, user_1002, user_1101)
+        result = my_filter.audit_filter(users)
+
         # then
-        expected = {
-            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
-            user_1002.id: {"message": "Peter Parker", "check": True},
-        }
-        self.assertEqual(dict(result), expected)
+        self.assertDictEqual(
+            result[self.user.id],
+            {"message": "Bruce Wayne (Merlin), Clark Kent (Merlin)", "check": True},
+        )
+        self.assertDictEqual(
+            result[user_1002.id], {"message": "No matching assets", "check": False}
+        )
+        self.assertDictEqual(
+            result[user_1101.id], {"message": "No audit info", "check": False}
+        )
+        self.assertEqual(len(result), 3)
 
     def test_should_return_audit_data_when_no_matches(self):
         # given
         my_filter = AssetFilter.objects.create()
         # when
-        result = my_filter.audit_filter([self.user])
+        users = make_user_queryset(self.user)
+        result = my_filter.audit_filter(users)
         # then
-        self.assertEqual(result, {})
+        self.assertEqual(len(result), 1)
+        self.assertDictEqual(
+            result[self.user.id], {"message": "No matching assets", "check": False}
+        )
 
 
 class TestComplianceFilter(TestCase):
@@ -936,3 +953,8 @@ class TestTimeInCorporationFilter(TestCase):
             user_1101.id: {"message": "29 days", "check": False},
         }
         self.assertDictEqual(dict(result), expected)
+
+
+def make_user_queryset(*users):
+    params = {"pk__in": [obj.pk for obj in users]}
+    return User.objects.filter(**params)

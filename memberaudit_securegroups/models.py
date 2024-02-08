@@ -340,41 +340,54 @@ class AssetFilter(BaseFilter):
             eve_type__in=self.assets.all(),
         ).exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users: models.QuerySet[User]):
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
         """
 
-        matching_characters = Character.objects.filter(
-            eve_character__character_ownership__user__in=list(users),
-            assets__eve_type__in=list(self.assets.all()),
-        ).values(
-            user_id=F("eve_character__character_ownership__user_id"),
-            character_name=F("eve_character__character_name"),
-            asset_name=F("assets__eve_type__name"),
+        matching_assets = CharacterAsset.objects.filter(
+            character=OuterRef("pk"), eve_type__in=list(self.assets.all())
+        )
+        characters = (
+            Character.objects.filter(
+                eve_character__character_ownership__user__in=list(users)
+            )
+            .annotate(asset_name=Subquery(matching_assets.values("eve_type__name")[:1]))
+            .values(
+                "asset_name",
+                user_id=F("eve_character__character_ownership__user_id"),
+                character_name=F("eve_character__character_name"),
+            )
         )
 
-        output_characters = defaultdict(list)
+        output_users = {}
+        for character in characters:
+            user_id = character["user_id"]
+            if user_id not in output_users:
+                output_users[user_id] = []
 
-        for character in matching_characters:
-            character_name = character["character_name"]
             asset_name = character["asset_name"]
-
-            if self.assets.all().count() > 1:
-                output_characters[character["user_id"]].append(
+            if asset_name:
+                character_name = character["character_name"]
+                output_users[character["user_id"]].append(
                     f"{character_name} ({asset_name})"
                 )
+
+        output = {}
+        for user_id, matches in output_users.items():
+            if matches:
+                message = ", ".join(sorted(matches))
+                check = True
             else:
-                output_characters[character["user_id"]].append(f"{character_name}")
+                message = "No matching assets"
+                check = False
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+            output[user_id] = {"message": message, "check": check}
 
-        for character, char_list in output_characters.items():
-            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
+        user_ids = set(users.values_list("id", flat=True))
+        missing_user_ids = user_ids - set(output.keys())
+        for user_id in missing_user_ids:
+            output[user_id] = {"message": "No audit info", "check": False}
 
         return output
 
