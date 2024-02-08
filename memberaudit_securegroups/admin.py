@@ -28,6 +28,7 @@ from memberaudit_securegroups.models import (
     CorporationTitleFilter,
     SkillPointFilter,
     SkillSetFilter,
+    TimeInCorporationFilter,
 )
 
 
@@ -208,3 +209,12 @@ class SkillSetFilterAdmin(admin.ModelAdmin):
         objs = obj.skill_sets.all()
 
         return ", ".join(sorted([obj.name for obj in objs]))
+
+
+@admin.register(TimeInCorporationFilter)
+class TimeInCorporationFilterAdmin(admin.ModelAdmin):
+    """
+    TimeInCorporationFilterAdmin
+    """
+
+    list_display = ("description", "minimum_days")

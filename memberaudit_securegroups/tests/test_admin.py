@@ -14,6 +14,7 @@ from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,
+    TimeInCorporationFilter,
 )
 
 
@@ -103,3 +104,29 @@ class TestCorporationTitleFilter(TestCase):
         response = self.client.post(self.admin_add_url, data)
         # then
         self.assertEqual(response.status_code, 200)
+
+
+class TestTimeInCorpFilter(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.user = User.objects.create(
+            username="superman", is_staff=True, is_superuser=True
+        )
+        cls.admin_add_url = reverse(
+            "admin:memberaudit_securegroups_timeincorporationfilter_add"
+        )
+
+    def test_should_create_new_filter(self):
+        # given
+        self.client.force_login(self.user)
+        data = {
+            "description": "dummy",
+            "minimum_days": 45,
+        }
+        # when
+        response = self.client.post(self.admin_add_url, data)
+        # then
+        self.assertEqual(response.status_code, 302)
+        obj = TimeInCorporationFilter.objects.first()
+        self.assertEqual(obj.minimum_days, 45)
