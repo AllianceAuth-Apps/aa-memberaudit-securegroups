@@ -60,7 +60,7 @@ repos:
           )
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.51.0
+    rev: v9.0.0-alpha.2
     hooks:
       - id: eslint
         exclude: |
@@ -70,7 +70,7 @@ repos:
           )
 
   - repo: https://github.com/thibaudcolas/pre-commit-stylelint
-    rev: v15.11.0
+    rev: v16.2.1
     hooks:
       - id: stylelint
         exclude: |
@@ -121,7 +121,7 @@ repos:
           - --py38-plus
 
   - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: flake8
 
@@ -131,7 +131,7 @@ repos:
       - id: yesqa
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
         exclude: |
@@ -145,7 +145,7 @@ repos:
       - id: black-disable-checker
 
   - repo: https://github.com/psf/black
-    rev: 23.10.0
+    rev: 24.1.1
     hooks:
       - id: black
         args:
@@ -176,7 +176,7 @@ repos:
       - id: tox-ini-fmt
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.2.0
+    rev: 1.7.0
     hooks:
       - id: pyproject-fmt
         args:
@@ -185,7 +185,7 @@ repos:
           - tox>=4.11.3  # https://github.com/tox-dev/tox/releases/latest
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.15
+    rev: v0.16
     hooks:
       - id: validate-pyproject
 
