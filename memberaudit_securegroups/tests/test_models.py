@@ -63,8 +63,8 @@ class TestAssetFilter(TestCase):
         super().setUpClass()
         load_entities()
         load_eveuniverse()
-        cls.character = create_memberaudit_character(1001)
-        cls.user_1 = cls.character.character_ownership.user
+        cls.character_1001 = create_memberaudit_character(1001)
+        cls.user_1 = cls.character_1001.character_ownership.user
 
     def test_should_return_name(self):
         # given
@@ -78,7 +78,7 @@ class TestAssetFilter(TestCase):
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
         astrahus_type = EveType.objects.get(name="Astrahus")
-        create_character_asset(character=self.character, eve_type=astrahus_type)
+        create_character_asset(character=self.character_1001, eve_type=astrahus_type)
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
 
@@ -87,7 +87,7 @@ class TestAssetFilter(TestCase):
         my_filter = AssetFilter.objects.create()
         merlin_type = EveType.objects.get(name="Merlin")
         my_filter.assets.add(merlin_type)
-        create_character_asset(character=self.character, eve_type=merlin_type)
+        create_character_asset(character=self.character_1001, eve_type=merlin_type)
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
 
@@ -97,7 +97,7 @@ class TestAssetFilter(TestCase):
         merlin_type = EveType.objects.get(name="Merlin")
         astrahus_type = EveType.objects.get(name="Astrahus")
         my_filter.assets.add(merlin_type, astrahus_type)
-        create_character_asset(character=self.character, eve_type=merlin_type)
+        create_character_asset(character=self.character_1001, eve_type=merlin_type)
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
 
@@ -108,7 +108,7 @@ class TestAssetFilter(TestCase):
         my_filter.assets.add(merlin_type)
 
         # and main user's character has a Merlin
-        create_character_asset(character=self.character, eve_type=merlin_type)
+        create_character_asset(character=self.character_1001, eve_type=merlin_type)
 
         # and main user's 2nd character also has a Merlin
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
@@ -247,8 +247,8 @@ class TestCorporationRoleFilter(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
-        cls.character = create_memberaudit_character(1001)
-        cls.user_1 = cls.character.character_ownership.user
+        cls.character_1001 = create_memberaudit_character(1001)
+        cls.user_1 = cls.character_1001.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
         cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
 
@@ -270,7 +270,7 @@ class TestCorporationRoleFilter(TestCase):
             corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
         )
         create_character_role(
-            character=self.character, role=CharacterRole.Role.DIRECTOR
+            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
         )
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
@@ -281,7 +281,7 @@ class TestCorporationRoleFilter(TestCase):
             corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
         )
         create_character_role(
-            character=self.character,
+            character=self.character_1001,
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.OTHER,
         )
@@ -295,7 +295,7 @@ class TestCorporationRoleFilter(TestCase):
         )
         my_filter.corporations.add(self.corporation_2101)
         create_character_role(
-            character=self.character,
+            character=self.character_1001,
             role=CharacterRole.Role.DIRECTOR,
         )
         # when/then
@@ -353,7 +353,7 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=False,
         )
         create_character_role(
-            character=self.character, role=CharacterRole.Role.DIRECTOR
+            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
         )
 
         character_1101 = create_memberaudit_character(1101)
@@ -383,7 +383,7 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=True,
         )
         create_character_role(
-            character=self.character, role=CharacterRole.Role.DIRECTOR
+            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
         )
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_role(
@@ -421,8 +421,8 @@ class TestCorporationTitleFilter(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
-        cls.character = create_memberaudit_character(1001)
-        cls.user_1 = cls.character.character_ownership.user
+        cls.character_1001 = create_memberaudit_character(1001)
+        cls.user_1 = cls.character_1001.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
         cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
 
@@ -445,7 +445,7 @@ class TestCorporationTitleFilter(TestCase):
         my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001], title="Alpha"
         )
-        create_character_title(character=self.character, name="Alpha")
+        create_character_title(character=self.character_1001, name="Alpha")
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
@@ -455,7 +455,7 @@ class TestCorporationTitleFilter(TestCase):
     ):
         # given
         my_filter = create_corporation_title_filter(corporations=[], title="Alpha")
-        create_character_title(character=self.character, name="Alpha")
+        create_character_title(character=self.character_1001, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
@@ -465,7 +465,7 @@ class TestCorporationTitleFilter(TestCase):
         my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2101], title="Alpha"
         )
-        create_character_title(character=self.character, name="Alpha")
+        create_character_title(character=self.character_1001, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
@@ -507,14 +507,14 @@ class TestCorporationTitleFilter(TestCase):
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
 
-    def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
+    def test_should_return_audit_data_for_users_and_mains_only(self):
         # given
         my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=False,
         )
-        create_character_title(character=self.character, name="Alpha")
+        create_character_title(character=self.character_1001, name="Alpha")
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
         character_1101 = create_memberaudit_character(1101)
@@ -538,7 +538,7 @@ class TestCorporationTitleFilter(TestCase):
             title="Alpha",
             include_alts=True,
         )
-        create_character_title(character=self.character, name="Alpha")
+        create_character_title(character=self.character_1001, name="Alpha")
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
         character_1101 = create_memberaudit_character(1101)
