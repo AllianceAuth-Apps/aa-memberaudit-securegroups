@@ -52,7 +52,7 @@ from .factories import (
 # [x] AssetFilter
 # [x] ComplianceFilter
 # [x] CorporationRoleFilter
-# [ ] CorporationTitleFilter
+# [x] CorporationTitleFilter
 # [ ] SkillPointFilter
 # [ ] SkillSetFilter
 
@@ -517,43 +517,51 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=self.character_1001, name="Alpha")
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
+
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
-        create_character_title(character=character_1101, name="Alpha")
+        character_1102 = add_memberaudit_character_to_user(user_2, 1102)
+        create_character_title(character=character_1102, name="Alpha")
+
+        user_3, _ = create_user_from_evecharacter_with_access(1104)
 
         # when
-        users = make_user_queryset(self.user_1, user_2)
+        users = make_user_queryset(self.user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
-        # then
-        expected = {
-            self.user_1.id: {"message": "Bruce Wayne", "check": True},
-            user_2.id: {"message": "Lex Luther", "check": True},
-        }
-        self.assertDictEqual(result, expected)
 
-    def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertDictEqual(
+            result[self.user_1.id], {"message": "Bruce Wayne", "check": True}
+        )
+        self.assertFalse(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
+
+    def test_should_return_audit_data_for_three_users_and_including_alts(self):
         # given
         my_filter = create_corporation_title_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=True,
         )
-        create_character_title(character=self.character_1001, name="Alpha")
         character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
+
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
         create_character_title(character=character_1101, name="Alpha")
 
+        user_3, _ = create_user_from_evecharacter_with_access(1104)
+
         # when
-        users = make_user_queryset(self.user_1, user_2)
+        users = make_user_queryset(self.user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
+
         # then
-        expected = {
-            self.user_1.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
-            user_2.id: {"message": "Lex Luther", "check": True},
-        }
-        self.assertDictEqual(result, expected)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[self.user_1.id]["check"])
+        self.assertTrue(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
 
 class TestSkillSetFilterBase(TestCase):

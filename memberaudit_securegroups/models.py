@@ -627,12 +627,14 @@ class CorporationTitleFilter(BaseFilter):
         )
 
         user_with_characters = defaultdict(list)
-
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        output = {
+            user_id: {"message": "No matching character", "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
