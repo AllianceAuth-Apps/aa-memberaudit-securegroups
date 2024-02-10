@@ -46,16 +46,6 @@ from .factories import (
     create_time_in_corporation_filter,
 )
 
-# Verify all audit_filter() methods return data for all given users, including non audit users
-# [ ] ActivityFilter
-# [ ] AgeFilter
-# [x] AssetFilter
-# [x] ComplianceFilter
-# [x] CorporationRoleFilter
-# [x] CorporationTitleFilter
-# [ ] SkillPointFilter
-# [ ] SkillSetFilter
-
 
 class TestAssetFilter(TestCase):
     @classmethod
@@ -215,8 +205,11 @@ class TestComplianceFilter(TestCase):
     def test_should_return_audit_data_for_non_compliant_user_with_1_character(self):
         # given
         my_filter = ComplianceFilter.objects.create()
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {
             self.user_1.pk: {
@@ -230,8 +223,11 @@ class TestComplianceFilter(TestCase):
         # given
         add_auth_character_to_user(self.user_1, 1002)
         my_filter = ComplianceFilter.objects.create()
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {
             self.user_1.pk: {
@@ -738,7 +734,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
 
 
 class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
-    def test_should_return_audit_data_with_two_users(self):
+    def test_should_return_audit_data_with_several_users(self):
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
@@ -750,30 +746,24 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         create_character_skill_set_check(
             character=self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
+
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
         create_character_skill_set_check(
             character=character_1101, skill_set=self.amarr_carrier_skill_set
         )
-        # when
-        result = my_filter.audit_filter([self.user_1, user_2])
-        # then
-        expected = {
-            self.user_1.id: {"check": True, "message": "Bruce Wayne, Clark Kent"},
-            user_2.id: {"check": True, "message": "Lex Luther"},
-        }
-        self.assertDictEqual(result, expected)
 
-    def test_should_return_audit_data_with_no_users(self):
-        # given
-        my_filter = SkillSetFilter.objects.create()
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
-        )
+        user_3, _ = create_user_from_evecharacter_with_access(1102)
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
         # then
-        self.assertDictEqual(result, {})
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[self.user_1.id]["check"])
+        self.assertTrue(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
     def test_should_return_audit_data_when_character_is_main_but_alt_required(self):
         # given
@@ -786,10 +776,14 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         create_character_skill_set_check(
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
-        self.assertDictEqual(result, {})
+        self.assertEqual(len(result), 1)
+        self.assertFalse(result[self.user_1.id]["check"])
 
     def test_should_return_audit_data_when_character_is_main_and_main_required(self):
         # given
@@ -802,8 +796,11 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         create_character_skill_set_check(
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
@@ -820,7 +817,9 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
@@ -837,9 +836,12 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
-        self.assertDictEqual(result, {})
+        self.assertEqual(len(result), 1)
+        self.assertFalse(result[self.user_1.id]["check"])
 
     def test_should_return_audit_data_when_character_is_alt_and_any_allowed(self):
         # given
@@ -852,8 +854,11 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         create_character_skill_set_check(
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
@@ -869,8 +874,11 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         create_character_skill_set_check(
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
+
         # when
-        result = my_filter.audit_filter([self.user_1])
+        users = make_user_queryset(self.user_1)
+        result = my_filter.audit_filter(users)
+
         # then
         expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
