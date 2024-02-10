@@ -5,7 +5,7 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
-from typing import Iterable, List
+from typing import List
 
 # Third Party
 import humanize
@@ -139,13 +139,10 @@ class BaseFilter(models.Model):
 
         raise NotImplementedError(_("Please create a filter!"))
 
-    def audit_filter(self, users):
+    def audit_filter(self, users: models.QuerySet[User]) -> dict:
         """
-        Bulk check system that also advises the user with simple messages
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+        Return information for each given user wether they passes the filter
+        and a help message shown in the audit feature.
         """
 
         raise NotImplementedError(_("Please create an audit function!"))
@@ -524,11 +521,7 @@ class CorporationRoleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: Iterable[User]) -> dict:
-        """
-        Return result of filter audit for given users.
-        """
-
+    def audit_filter(self, users):
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -545,12 +538,14 @@ class CorporationRoleFilter(BaseFilter):
         )
 
         user_with_characters = defaultdict(list)
-
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        output = {
+            user_id: {"message": "No matching character", "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
@@ -616,11 +611,7 @@ class CorporationTitleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: Iterable[User]) -> dict:
-        """
-        Return result of filter audit for given users.
-        """
-
+    def audit_filter(self, users):
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),

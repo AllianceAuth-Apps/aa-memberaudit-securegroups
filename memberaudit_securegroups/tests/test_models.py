@@ -46,6 +46,16 @@ from .factories import (
     create_time_in_corporation_filter,
 )
 
+# Verify all audit_filter() methods return data for all given users, including non audit users
+# [ ] ActivityFilter
+# [ ] AgeFilter
+# [x] AssetFilter
+# [x] ComplianceFilter
+# [x] CorporationRoleFilter
+# [ ] CorporationTitleFilter
+# [ ] SkillPointFilter
+# [ ] SkillSetFilter
+
 
 class TestAssetFilter(TestCase):
     @classmethod
@@ -54,7 +64,7 @@ class TestAssetFilter(TestCase):
         load_entities()
         load_eveuniverse()
         cls.character = create_memberaudit_character(1001)
-        cls.user = cls.character.character_ownership.user
+        cls.user_1 = cls.character.character_ownership.user
 
     def test_should_return_name(self):
         # given
@@ -70,7 +80,7 @@ class TestAssetFilter(TestCase):
         astrahus_type = EveType.objects.get(name="Astrahus")
         create_character_asset(character=self.character, eve_type=astrahus_type)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_has_asset(self):
         # given
@@ -79,7 +89,7 @@ class TestAssetFilter(TestCase):
         my_filter.assets.add(merlin_type)
         create_character_asset(character=self.character, eve_type=merlin_type)
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_has_at_least_one_asset(self):
         # given
@@ -89,7 +99,7 @@ class TestAssetFilter(TestCase):
         my_filter.assets.add(merlin_type, astrahus_type)
         create_character_asset(character=self.character, eve_type=merlin_type)
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_audit_data_for_one_matching_one_not_matching_user(self):
         # given a filter for Merlins
@@ -101,29 +111,29 @@ class TestAssetFilter(TestCase):
         create_character_asset(character=self.character, eve_type=merlin_type)
 
         # and main user's 2nd character also has a Merlin
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_asset(character=character_1002, eve_type=merlin_type)
 
         # and a 2nd user has a registered character, but no Merlin
         character_1003 = create_memberaudit_character(1003)
         user_1002 = character_1003.character_ownership.user
         # and a 3rd user is not registered
-        user_1101, _ = create_user_from_evecharacter_with_access(1101)
+        user_2, _ = create_user_from_evecharacter_with_access(1101)
 
         # when
-        users = make_user_queryset(self.user, user_1002, user_1101)
+        users = make_user_queryset(self.user_1, user_1002, user_2)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertDictEqual(
-            result[self.user.id],
+            result[self.user_1.id],
             {"message": "Bruce Wayne (Merlin), Clark Kent (Merlin)", "check": True},
         )
         self.assertDictEqual(
             result[user_1002.id], {"message": "No matching assets", "check": False}
         )
         self.assertDictEqual(
-            result[user_1101.id], {"message": "No audit info", "check": False}
+            result[user_2.id], {"message": "No audit info", "check": False}
         )
         self.assertEqual(len(result), 3)
 
@@ -131,12 +141,12 @@ class TestAssetFilter(TestCase):
         # given
         my_filter = AssetFilter.objects.create()
         # when
-        users = make_user_queryset(self.user)
+        users = make_user_queryset(self.user_1)
         result = my_filter.audit_filter(users)
         # then
         self.assertEqual(len(result), 1)
         self.assertDictEqual(
-            result[self.user.id], {"message": "No matching assets", "check": False}
+            result[self.user_1.id], {"message": "No matching assets", "check": False}
         )
 
 
@@ -145,7 +155,7 @@ class TestComplianceFilter(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         load_entities()
-        cls.user, _ = create_user_from_evecharacter_with_access(1001)
+        cls.user_1, _ = create_user_from_evecharacter_with_access(1001)
 
     def test_should_return_name(self):
         # given
@@ -155,68 +165,76 @@ class TestComplianceFilter(TestCase):
 
     def test_should_return_true_when_user_is_compliant_1(self):
         # given a user with 1 registered character
-        add_memberaudit_character_to_user(self.user, 1001)
+        add_memberaudit_character_to_user(self.user_1, 1001)
         my_filter = ComplianceFilter.objects.create()
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_is_compliant_2(self):
         # given a user with 2 registered character
-        add_memberaudit_character_to_user(self.user, 1001)
-        add_memberaudit_character_to_user(self.user, 1002)
+        add_memberaudit_character_to_user(self.user_1, 1001)
+        add_memberaudit_character_to_user(self.user_1, 1002)
         my_filter = ComplianceFilter.objects.create()
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_user_is_not_compliant_1(self):
         # given a user with 1 unregistered character
         my_filter = ComplianceFilter.objects.create()
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_user_is_not_compliant_2(self):
         # given a user with 1 registered and 1 unregistered character
-        add_memberaudit_character_to_user(self.user, 1001)
-        add_auth_character_to_user(self.user, 1002)
+        add_memberaudit_character_to_user(self.user_1, 1001)
+        add_auth_character_to_user(self.user_1, 1002)
         my_filter = ComplianceFilter.objects.create()
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
-    def test_should_return_audit_data_for_compliant_user(self):
+    def test_should_return_audit_data_for_users(self):
         # given
-        add_memberaudit_character_to_user(self.user, 1001)
         my_filter = ComplianceFilter.objects.create()
+        add_memberaudit_character_to_user(self.user_1, 1001)
+        user_2, _ = create_user_from_evecharacter_with_access(1101)
         # when
-        result = my_filter.audit_filter([self.user])
+        users = make_user_queryset(self.user_1, user_2)
+        result = my_filter.audit_filter(users)
         # then
-        expected = {
-            self.user.pk: {
-                "check": True,
-                "message": f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
-            }
-        }
-        self.assertDictEqual(result, expected)
+        self.assertEqual(len(result), 2)
+        result_user_1001 = result[self.user_1.pk]
+        self.assertTrue(result_user_1001["check"])
+        self.assertEqual(
+            result_user_1001["message"],
+            f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
+        )
+        result_user_1101 = result[user_2.pk]
+        self.assertFalse(result_user_1101["check"])
+        self.assertIn("Lex Luther", result_user_1101["message"])
 
     def test_should_return_audit_data_for_non_compliant_user_with_1_character(self):
         # given
         my_filter = ComplianceFilter.objects.create()
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
         expected = {
-            self.user.pk: {"check": False, "message": "Missing character: Bruce Wayne"},
+            self.user_1.pk: {
+                "check": False,
+                "message": "Missing character: Bruce Wayne",
+            },
         }
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_for_non_compliant_user_with_2_characters(self):
         # given
-        add_auth_character_to_user(self.user, 1002)
+        add_auth_character_to_user(self.user_1, 1002)
         my_filter = ComplianceFilter.objects.create()
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
         expected = {
-            self.user.pk: {
+            self.user_1.pk: {
                 "check": False,
                 "message": "Missing characters: Bruce Wayne, Clark Kent",
             },
@@ -230,7 +248,7 @@ class TestCorporationRoleFilter(TestCase):
         super().setUpClass()
         load_entities()
         cls.character = create_memberaudit_character(1001)
-        cls.user = cls.character.character_ownership.user
+        cls.user_1 = cls.character.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
         cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
 
@@ -244,7 +262,7 @@ class TestCorporationRoleFilter(TestCase):
         # given
         my_filter = create_corporation_role_filter(corporations=[self.corporation_2001])
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_has_character_with_role_in_corp(self):
         # given
@@ -252,12 +270,10 @@ class TestCorporationRoleFilter(TestCase):
             corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
         )
         create_character_role(
-            character=self.character,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=self.character, role=CharacterRole.Role.DIRECTOR
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_user_role_is_not_universal(self):
         # given
@@ -270,7 +286,7 @@ class TestCorporationRoleFilter(TestCase):
             location=CharacterRole.Location.OTHER,
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_role_is_in_wrong_corp(self):
         # given
@@ -281,10 +297,9 @@ class TestCorporationRoleFilter(TestCase):
         create_character_role(
             character=self.character,
             role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_character_with_role_owned_by_other_user(self):
         # given
@@ -296,10 +311,9 @@ class TestCorporationRoleFilter(TestCase):
         create_character_role(
             character=character_1002,
             role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_role_is_not_main(self):
         # given filter for mains only
@@ -309,14 +323,12 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=False,
         )
         # and character has role, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_role(
-            character=character_1002,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=character_1002, role=CharacterRole.Role.DIRECTOR
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_with_role_is_not_main_but_allowed(self):
         # given filter for mains only
@@ -326,16 +338,14 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=True,
         )
         # and character has role, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_role(
-            character=character_1002,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=character_1002, role=CharacterRole.Role.DIRECTOR
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
-    def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
+    def test_should_return_audit_data_for_three_users_and_no_alts(self):
         # given
         my_filter = create_corporation_role_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
@@ -343,33 +353,29 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=False,
         )
         create_character_role(
-            character=self.character,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=self.character, role=CharacterRole.Role.DIRECTOR
         )
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
-        create_character_role(
-            character=character_1002,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
-        )
+
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
+        character_1102 = add_memberaudit_character_to_user(user_2, 1102)
         create_character_role(
-            character=character_1101,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=character_1102, role=CharacterRole.Role.DIRECTOR
         )
-        # when
-        result = my_filter.audit_filter([self.user, user_2])
-        # then
-        expected = {
-            self.user.id: {"message": "Bruce Wayne", "check": True},
-            user_2.id: {"message": "Lex Luther", "check": True},
-        }
-        self.assertDictEqual(result, expected)
 
-    def test_should_return_audit_data_for_two_matching_users_no_mains_allowed(self):
+        user_3, _ = create_user_from_evecharacter_with_access(1003)
+
+        # when
+        users = make_user_queryset(self.user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[self.user_1.pk]["check"])
+        self.assertFalse(result[user_2.pk]["check"])
+        self.assertFalse(result[user_3.pk]["check"])
+
+    def test_should_return_audit_data_for_two_users_with_alts(self):
         # given
         my_filter = create_corporation_role_filter(
             corporations=[self.corporation_2001, self.corporation_2101],
@@ -377,31 +383,37 @@ class TestCorporationRoleFilter(TestCase):
             include_alts=True,
         )
         create_character_role(
-            character=self.character,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=self.character, role=CharacterRole.Role.DIRECTOR
         )
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_role(
-            character=character_1002,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=character_1002, role=CharacterRole.Role.DIRECTOR
         )
+
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
         create_character_role(
-            character=character_1101,
-            role=CharacterRole.Role.DIRECTOR,
-            location=CharacterRole.Location.UNIVERSAL,
+            character=character_1101, role=CharacterRole.Role.DIRECTOR
         )
+
+        user_3, _ = create_user_from_evecharacter_with_access(1102)
+
         # when
-        result = my_filter.audit_filter([self.user, user_2])
+        users = make_user_queryset(self.user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
         # then
-        expected = {
-            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
-            user_2.id: {"message": "Lex Luther", "check": True},
-        }
-        self.assertDictEqual(result, expected)
+        self.assertEqual(len(result), 3)
+        self.assertDictEqual(
+            result[self.user_1.id],
+            {"message": "Bruce Wayne, Clark Kent", "check": True},
+        )
+        self.assertDictEqual(
+            result[user_2.id], {"message": "Lex Luther", "check": True}
+        )
+        self.assertDictEqual(
+            result[user_3.id], {"message": "No matching character", "check": False}
+        )
 
 
 class TestCorporationTitleFilter(TestCase):
@@ -410,7 +422,7 @@ class TestCorporationTitleFilter(TestCase):
         super().setUpClass()
         load_entities()
         cls.character = create_memberaudit_character(1001)
-        cls.user = cls.character.character_ownership.user
+        cls.user_1 = cls.character.character_ownership.user
         cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
         cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
 
@@ -426,7 +438,7 @@ class TestCorporationTitleFilter(TestCase):
         my_filter = create_corporation_title_filter(corporations=[])
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_has_character_with_title_in_corp(self):
         # given
@@ -436,7 +448,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_not_return_true_when_user_has_character_with_title_but_corp_not_defined(
         self,
@@ -446,7 +458,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_title_is_in_wrong_corp(self):
         # given
@@ -456,7 +468,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=self.character, name="Alpha")
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_character_with_title_is_owned_by_other_user(self):
         # given
@@ -468,7 +480,7 @@ class TestCorporationTitleFilter(TestCase):
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_title_is_not_main(self):
         # given filter for mains only
@@ -476,11 +488,11 @@ class TestCorporationTitleFilter(TestCase):
             corporations=[self.corporation_2001], title="Alpha", include_alts=False
         )
         # and owned character has title, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_with_title_is_not_main_but_allowed(self):
         # given filter for mains only
@@ -489,11 +501,11 @@ class TestCorporationTitleFilter(TestCase):
         )
 
         # and character has title, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
 
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_audit_data_for_two_matching_users_but_mains_only(self):
         # given
@@ -503,17 +515,18 @@ class TestCorporationTitleFilter(TestCase):
             include_alts=False,
         )
         create_character_title(character=self.character, name="Alpha")
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
         create_character_title(character=character_1101, name="Alpha")
 
         # when
-        result = my_filter.audit_filter([self.user, user_2])
+        users = make_user_queryset(self.user_1, user_2)
+        result = my_filter.audit_filter(users)
         # then
         expected = {
-            self.user.id: {"message": "Bruce Wayne", "check": True},
+            self.user_1.id: {"message": "Bruce Wayne", "check": True},
             user_2.id: {"message": "Lex Luther", "check": True},
         }
         self.assertDictEqual(result, expected)
@@ -526,17 +539,18 @@ class TestCorporationTitleFilter(TestCase):
             include_alts=True,
         )
         create_character_title(character=self.character, name="Alpha")
-        character_1002 = add_memberaudit_character_to_user(self.user, 1002)
+        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
         create_character_title(character=character_1002, name="Alpha")
         character_1101 = create_memberaudit_character(1101)
         user_2 = character_1101.character_ownership.user
         create_character_title(character=character_1101, name="Alpha")
 
         # when
-        result = my_filter.audit_filter([self.user, user_2])
+        users = make_user_queryset(self.user_1, user_2)
+        result = my_filter.audit_filter(users)
         # then
         expected = {
-            self.user.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
+            self.user_1.id: {"message": "Bruce Wayne, Clark Kent", "check": True},
             user_2.id: {"message": "Lex Luther", "check": True},
         }
         self.assertDictEqual(result, expected)
@@ -550,8 +564,8 @@ class TestSkillSetFilterBase(TestCase):
         load_eveuniverse()
         # user with a main and an alt
         cls.character_1001 = create_memberaudit_character(1001)
-        cls.user = cls.character_1001.character_ownership.user
-        cls.character_1002 = add_memberaudit_character_to_user(cls.user, 1002)
+        cls.user_1 = cls.character_1001.character_ownership.user
+        cls.character_1002 = add_memberaudit_character_to_user(cls.user_1, 1002)
         # amarr carrier skill set
         cls.amarr_carrier_skill_type = EveType.objects.get(name="Amarr Carrier")
         cls.amarr_carrier_skill_set = create_skill_set()
@@ -586,7 +600,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_user_did_not_pass_skill_set_check(self):
         # given
@@ -599,7 +613,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         )
         skill_set_check.failed_required_skills.add(self.amarr_carrier_skill_set_skill)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_passes_skill_set(self):
         # given
@@ -611,7 +625,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_passes_skill_set_except_recommended_skills(
         self,
@@ -628,7 +642,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             self.amarr_carrier_skill_set_skill
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_is_main_but_alt_required(self):
         # given
@@ -642,7 +656,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_is_main_and_main_required(self):
         # given
@@ -656,7 +670,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_is_main_and_any_allowed(self):
         # given
@@ -670,7 +684,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_is_alt_but_main_required(self):
         # given
@@ -684,7 +698,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user))
+        self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_is_alt_and_any_allowed(self):
         # given
@@ -698,7 +712,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_is_alt_and_alt_required(self):
         # given
@@ -712,7 +726,7 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user))
+        self.assertTrue(my_filter.process_filter(self.user_1))
 
 
 class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
@@ -729,16 +743,16 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             character=self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         character_1101 = create_memberaudit_character(1101)
-        user_1101 = character_1101.character_ownership.user
+        user_2 = character_1101.character_ownership.user
         create_character_skill_set_check(
             character=character_1101, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user, user_1101])
+        result = my_filter.audit_filter([self.user_1, user_2])
         # then
         expected = {
-            self.user.id: {"check": True, "message": "Bruce Wayne, Clark Kent"},
-            user_1101.id: {"check": True, "message": "Lex Luther"},
+            self.user_1.id: {"check": True, "message": "Bruce Wayne, Clark Kent"},
+            user_2.id: {"check": True, "message": "Lex Luther"},
         }
         self.assertDictEqual(result, expected)
 
@@ -749,7 +763,7 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
         self.assertDictEqual(result, {})
 
@@ -765,7 +779,7 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
         self.assertDictEqual(result, {})
 
@@ -781,9 +795,9 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
-        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
+        expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_main_and_any_allowed(self):
@@ -798,9 +812,9 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             character=self.character_1001, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
-        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
+        expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_alt_but_main_required(self):
@@ -815,7 +829,7 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
         self.assertDictEqual(result, {})
 
@@ -831,9 +845,9 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
-        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
+        expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_alt_and_alt_required(self):
@@ -848,9 +862,9 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
             self.character_1002, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        result = my_filter.audit_filter([self.user])
+        result = my_filter.audit_filter([self.user_1])
         # then
-        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
+        expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
 
     def test_should_default_to_any_as_character_type(self):
