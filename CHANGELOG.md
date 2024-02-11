@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+### Added
+
+- Corp title filter (Thanks to @ErikKalkoken)
+- Time in corp filter (Thanks to @ErikKalkoken)
+
 ## \[0.6.1\] - 2023-10-22
 
 ### Fixed
@@ -18,7 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Support for corporation role filter (Thanks to @ErikKalkoken)
-- Character type selector to skill set filter (This allows to create auto groups for
+- Character type selector to skill set filter (This allows creating auto groups for
   something like fax alts) (Thanks to @ErikKalkoken)
 
 ### Fixed
