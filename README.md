@@ -33,8 +33,10 @@ ______________________________________________________________________
 - Asset Filter
 - Character Age Filter
 - Compliance Filter
+- Corp Role Filter
 - Skill Set Filter
 - Skill Point Filter
+- Time in Corp Filter
 
 ## Installation<a name="installation"></a>
 
