@@ -891,7 +891,7 @@ class TimeInCorporationFilter(BaseFilter):
         passes = (now() - history.start_date).days >= self.minimum_days
         return passes
 
-    def audit_filter(self, users: Iterable[User]) -> dict:
+    def audit_filter(self, users) -> dict:
         """
         Return result of filter audit for given users.
         """
