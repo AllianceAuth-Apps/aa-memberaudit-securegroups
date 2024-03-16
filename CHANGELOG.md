@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+## \[1.0.0\] - 2024-03-16
+
 ### Added
 
 - Corp title filter (Thanks to @ErikKalkoken)
