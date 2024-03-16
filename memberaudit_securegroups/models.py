@@ -5,7 +5,7 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
-from typing import Iterable, List
+from typing import List
 
 # Third Party
 import humanize
@@ -13,8 +13,10 @@ import humanize
 # Django
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F, OuterRef, Q, Subquery
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
@@ -26,8 +28,10 @@ from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import (
     Character,
     CharacterAsset,
+    CharacterCorporationHistory,
     CharacterRole,
     CharacterSkillSetCheck,
+    CharacterTitle,
     General,
     SkillSet,
 )
@@ -135,13 +139,10 @@ class BaseFilter(models.Model):
 
         raise NotImplementedError(_("Please create a filter!"))
 
-    def audit_filter(self, users):
+    def audit_filter(self, users: models.QuerySet[User]) -> dict:
         """
-        Bulk check system that also advises the user with simple messages
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+        Return information for each given user wether they passes the filter
+        and a help message shown in the audit feature.
         """
 
         raise NotImplementedError(_("Please create an audit function!"))
@@ -336,41 +337,54 @@ class AssetFilter(BaseFilter):
             eve_type__in=self.assets.all(),
         ).exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users: models.QuerySet[User]):
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
         """
 
-        matching_characters = Character.objects.filter(
-            eve_character__character_ownership__user__in=list(users),
-            assets__eve_type__in=list(self.assets.all()),
-        ).values(
-            user_id=F("eve_character__character_ownership__user_id"),
-            character_name=F("eve_character__character_name"),
-            asset_name=F("assets__eve_type__name"),
+        matching_assets = CharacterAsset.objects.filter(
+            character=OuterRef("pk"), eve_type__in=list(self.assets.all())
+        )
+        characters = (
+            Character.objects.filter(
+                eve_character__character_ownership__user__in=list(users)
+            )
+            .annotate(asset_name=Subquery(matching_assets.values("eve_type__name")[:1]))
+            .values(
+                "asset_name",
+                user_id=F("eve_character__character_ownership__user_id"),
+                character_name=F("eve_character__character_name"),
+            )
         )
 
-        output_characters = defaultdict(list)
+        output_users = {}
+        for character in characters:
+            user_id = character["user_id"]
+            if user_id not in output_users:
+                output_users[user_id] = []
 
-        for character in matching_characters:
-            character_name = character["character_name"]
             asset_name = character["asset_name"]
-
-            if self.assets.all().count() > 1:
-                output_characters[character["user_id"]].append(
+            if asset_name:
+                character_name = character["character_name"]
+                output_users[character["user_id"]].append(
                     f"{character_name} ({asset_name})"
                 )
+
+        output = {}
+        for user_id, matches in output_users.items():
+            if matches:
+                message = ", ".join(sorted(matches))
+                check = True
             else:
-                output_characters[character["user_id"]].append(f"{character_name}")
+                message = "No matching assets"
+                check = False
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+            output[user_id] = {"message": message, "check": check}
 
-        for character, char_list in output_characters.items():
-            output[character] = {"message": ", ".join(sorted(char_list)), "check": True}
+        user_ids = set(users.values_list("id", flat=True))
+        missing_user_ids = user_ids - set(output.keys())
+        for user_id in missing_user_ids:
+            output[user_id] = {"message": "No audit info", "check": False}
 
         return output
 
@@ -507,11 +521,7 @@ class CorporationRoleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: Iterable[User]) -> dict:
-        """
-        Return result of filter audit for given users.
-        """
-
+    def audit_filter(self, users):
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -528,12 +538,103 @@ class CorporationRoleFilter(BaseFilter):
         )
 
         user_with_characters = defaultdict(list)
-
         for user_id in matching_characters:
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        output = {
+            user_id: {"message": "No matching character", "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
+
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
+
+        return output
+
+    def _corporation_ids(self) -> List[int]:
+        """
+        Return Eve IDs of corporations in this filter.
+        """
+
+        return list(self.corporations.values_list("corporation_id", flat=True))
+
+
+class CorporationTitleFilter(BaseFilter):
+    """
+    Filter for corporation titles.
+    """
+
+    corporations = models.ManyToManyField(
+        EveCorporationInfo,
+        related_name="+",
+        help_text=_(
+            "The character with the title must be in one of these corporations."
+        ),
+    )
+    title = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text=_("User must have a character with this title."),
+    )
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True, the filter will also include the users alt-characters."
+        ),
+    )
+
+    @property
+    def name(self):
+        """
+        Return name of this filter.
+        """
+
+        return _("Member Audit Corporation Title")
+
+    def process_filter(self, user: User) -> bool:
+        """
+        Return True when filter applies to the user, else False.
+        """
+
+        qs = CharacterTitle.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            character__eve_character__corporation_id__in=self._corporation_ids(),
+            name=self.title,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        return qs.exists()
+
+    def audit_filter(self, users):
+        qs = Character.objects.filter(
+            eve_character__character_ownership__user__in=list(users),
+            eve_character__corporation_id__in=self._corporation_ids(),
+            titles__name=self.title,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
+            user_id=F("eve_character__character_ownership__user_id"),
+            character_name=F("eve_character__character_name"),
+        )
+
+        user_with_characters = defaultdict(list)
+        for user_id in matching_characters:
+            character_name = user_id["character_name"]
+            user_with_characters[user_id["user_id"]].append(f"{character_name}")
+
+        output = {
+            user_id: {"message": "No matching character", "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
@@ -738,12 +839,84 @@ class SkillSetFilter(BaseFilter):
             character_name = user_id["character_name"]
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
-        output = defaultdict(lambda: {"message": "", "check": False})
+        output = {
+            user_id: {"message": "No matching character", "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
 
         for user_id, character_names in user_with_characters.items():
             output[user_id] = {
                 "message": ", ".join(sorted(character_names)),
                 "check": True,
             }
+
+        return output
+
+
+class TimeInCorporationFilter(BaseFilter):
+    minimum_days = models.PositiveIntegerField(
+        default=30,
+        help_text=(
+            "Minimum number of days a main character needs to be member "
+            "of his/her current corporation."
+        ),
+    )
+
+    @property
+    def name(self):
+        """
+        Return name of this filter.
+        """
+
+        return _("Member Audit Time in Corporation Filter")
+
+    def process_filter(self, user: User) -> bool:
+        """
+        Return True when filter applies to the user, else False.
+        """
+
+        try:
+            character = user.profile.main_character.memberaudit_character
+        except (ObjectDoesNotExist, AttributeError):
+            return False
+
+        history = (
+            character.corporation_history.exclude(is_deleted=True)
+            .order_by("-record_id")
+            .first()
+        )
+        if not history:
+            return False
+
+        passes = (now() - history.start_date).days >= self.minimum_days
+        return passes
+
+    def audit_filter(self, users) -> dict:
+        """
+        Return result of filter audit for given users.
+        """
+
+        current_membership = (
+            CharacterCorporationHistory.objects.filter(
+                character=OuterRef("profile__main_character__memberaudit_character__pk")
+            )
+            .exclude(is_deleted=True)
+            .order_by("-record_id")
+        )
+        users_days_in_corporation = users.annotate(
+            start_date=Subquery(current_membership.values("start_date")[:1])
+        )
+
+        output = defaultdict(lambda: {"message": "", "check": False})
+        for user in users_days_in_corporation:
+            if not user.start_date:
+                check = False
+                msg = "No audit info"
+            else:
+                days_in_corporation = (now() - user.start_date).days
+                check = days_in_corporation >= self.minimum_days
+                msg = f"{days_in_corporation} days"
+
+            output[user.id] = {"message": msg, "check": check}
 
         return output

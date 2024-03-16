@@ -25,8 +25,10 @@ from memberaudit_securegroups.models import (
     AssetFilter,
     ComplianceFilter,
     CorporationRoleFilter,
+    CorporationTitleFilter,
     SkillPointFilter,
     SkillSetFilter,
+    TimeInCorporationFilter,
 )
 
 
@@ -152,6 +154,28 @@ class CorporationRoleFilterAdmin(admin.ModelAdmin):
         return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
+@admin.register(CorporationTitleFilter)
+class CorporationTitleFilterAdmin(admin.ModelAdmin):
+    """
+    CorporationTitleFilterAdmin
+    """
+
+    list_display = ("description", "title", "_corporations")
+    filter_horizontal = ("corporations",)
+    fields = ("description", "title", "corporations", "include_alts")
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("corporations")
+
+    @admin.display()
+    def _corporations(self, obj) -> str:
+        objs = obj.corporations.all()
+
+        return ", ".join(sorted([obj.corporation_name for obj in objs]))
+
+
 @admin.register(SkillPointFilter)
 class SkillPointFilterAdmin(admin.ModelAdmin):
     """
@@ -185,3 +209,12 @@ class SkillSetFilterAdmin(admin.ModelAdmin):
         objs = obj.skill_sets.all()
 
         return ", ".join(sorted([obj.name for obj in objs]))
+
+
+@admin.register(TimeInCorporationFilter)
+class TimeInCorporationFilterAdmin(admin.ModelAdmin):
+    """
+    TimeInCorporationFilterAdmin
+    """
+
+    list_display = ("description", "minimum_days")

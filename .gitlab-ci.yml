@@ -64,8 +64,13 @@ test-311-django40:
   script:
     - tox -e py311-django40
 
+test-311-django42:
+  extends: .test-py311
+  script:
+    - tox -e py311-django42
+
 build-test:
-  needs: [test-38-django40, test-39-django40, test-310-django40, test-311-django40]
+  needs: [test-38-django40, test-39-django40, test-310-django40, test-311-django40, test-311-django42]
   stage: test
   image: python:3.10-bullseye
 
