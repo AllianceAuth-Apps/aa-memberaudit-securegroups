@@ -3,24 +3,25 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Nikolay <nick.postnikov@gmail.com>, 2023.
 # Max <mark25@inbox.ru>, 2023.
+# Ruslan Virchich <ruslan.virchich@gmail.com>, 2023, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-09-24 15:31+0200\n"
-"PO-Revision-Date: 2023-10-03 17:43+0000\n"
-"Last-Translator: Max <mark25@inbox.ru>\n"
+"POT-Creation-Date: 2024-03-16 13:00+0100\n"
+"PO-Revision-Date: 2024-05-10 14:08+0000\n"
+"Last-Translator: Ruslan Virchich <ruslan.virchich@gmail.com>\n"
 "Language-Team: Russian <https://weblate.ppfeufer.de/projects/"
-"alliance-auth-apps/aa-member-audit-secure-groups-integration/ru/>\n"
+"alliance-auth-apps/aa-member-audit-secure-groups/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=n==1 ? 3 : (n%10==1 && n%100!=11 ? 0 : "
 "n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.0.2\n"
+"X-Generator: Weblate 5.5.3\n"
 
-#: admin.py:49
+#: memberaudit_securegroups/admin.py:83
 #, python-brace-format
 msgid "{inactivity_threshold:d} day"
 msgid_plural "{inactivity_threshold:d} days"
@@ -29,28 +30,33 @@ msgstr[1] "{inactivity_threshold:d} дня"
 msgstr[2] "{inactivity_threshold:d} дней"
 msgstr[3] "{inactivity_threshold:d} день"
 
-#: apps.py:20
-#, python-brace-format
-msgid "Member Audit Secure Groups Integration v{__version__}"
+#: memberaudit_securegroups/admin.py:147
+msgid "corporation role"
+msgstr "корпоративные полномочия"
+
+#: memberaudit_securegroups/apps.py:20
+#, fuzzy, python-brace-format
+#| msgid "Member Audit Secure Groups Integration v{__version__}"
+msgid "Secure Groups (Member Audit Integration) v{__version__}"
 msgstr "Интеграция аудита членов безопасных групп v{__version__}"
 
-#: models.py:106
+#: memberaudit_securegroups/models.py:115
 msgid "The filter description that is shown to end users."
 msgstr "Описание фильтра, отображаемое пользователю."
 
-#: models.py:131
+#: memberaudit_securegroups/models.py:140
 msgid "Please create a filter!"
 msgstr "Пожалуйста, создайте фильтр!"
 
-#: models.py:142
+#: memberaudit_securegroups/models.py:148
 msgid "Please create an audit function!"
 msgstr "Пожалуйста, создайте функцию аудита!"
 
-#: models.py:151
+#: memberaudit_securegroups/models.py:157
 msgid "Maximum allowable inactivity, in <strong>days</strong>."
 msgstr "Максимальное допустимое время неактивности, в <strong>днях</strong>."
 
-#: models.py:162
+#: memberaudit_securegroups/models.py:168
 #, python-brace-format
 msgid "{self.inactivity_threshold:d} day"
 msgid_plural "{self.inactivity_threshold:d} days"
@@ -59,12 +65,12 @@ msgstr[1] "{self.inactivity_threshold:d} дня"
 msgstr[2] "{self.inactivity_threshold:d} дней"
 msgstr[3] "{self.inactivity_threshold:d} день"
 
-#: models.py:167
+#: memberaudit_securegroups/models.py:173
 #, python-brace-format
 msgid "Activity [Last {inactivity_threshold}]"
 msgstr "Активность [{inactivity_threshold}]"
 
-#: models.py:219
+#: memberaudit_securegroups/models.py:225
 msgid "Active character: "
 msgid_plural "Active characters: "
 msgstr[0] "Активный персонаж: "
@@ -72,11 +78,11 @@ msgstr[1] "Активные персонажи: "
 msgstr[2] "Активные персонажи: "
 msgstr[3] "Активные персонажи: "
 
-#: models.py:236
+#: memberaudit_securegroups/models.py:242
 msgid "Minimum allowable age, in <strong>days</strong>."
 msgstr "Минимальный допустимый возраст, в <strong>днях</strong>."
 
-#: models.py:247
+#: memberaudit_securegroups/models.py:253
 #, python-brace-format
 msgid "{self.age_threshold:d} day"
 msgid_plural "{self.age_threshold:d} days"
@@ -85,35 +91,30 @@ msgstr[1] "{self.age_threshold:d} дня"
 msgstr[2] "{self.age_threshold:d} дней"
 msgstr[3] "{self.age_threshold:d} день"
 
-#: models.py:252
+#: memberaudit_securegroups/models.py:258
 #, python-brace-format
 msgid "Character age [{age_threshold}]"
 msgstr "Возраст персонажа [{age_threshold}]"
 
-#: models.py:310
+#: memberaudit_securegroups/models.py:316
 msgid "User must possess <strong>one</strong> of the selected assets."
 msgstr ""
 "Пользователь должен владеть <strong>одним</strong> из выбранных ассетов."
 
-#: models.py:320
+#: memberaudit_securegroups/models.py:326
 msgid "Member Audit Asset"
 msgstr "Аудит ассетов"
 
-#: models.py:389
+#: memberaudit_securegroups/models.py:404
 msgid "Compliance"
 msgstr "Согласие"
 
-#: models.py:414
-#, python-brace-format
-msgid "Not all of your characters are added to {MEMBERAUDIT_APP_NAME}"
-msgstr "Не все Ваши персонажи добавлены в {MEMBERAUDIT_APP_NAME}"
-
-#: models.py:426
+#: memberaudit_securegroups/models.py:455
 #, python-brace-format
 msgid "All characters have been added to {MEMBERAUDIT_APP_NAME}"
 msgstr "Все персонажи были добавлены в {MEMBERAUDIT_APP_NAME}"
 
-#: models.py:434
+#: memberaudit_securegroups/models.py:461
 msgid "Missing character: "
 msgid_plural "Missing characters: "
 msgstr[0] "Отсутствующие персонажи: "
@@ -121,11 +122,57 @@ msgstr[1] "Отсутствующие персонажи: "
 msgstr[2] "Отсутствующие персонажи: "
 msgstr[3] "Отсутствующий персонаж: "
 
-#: models.py:456
+#: memberaudit_securegroups/models.py:483
+msgid "The character with the role must be in one of these corporations."
+msgstr "Персонаж с полномочием должен быть в одной из этих корпораций."
+
+#: memberaudit_securegroups/models.py:490
+msgid "User must have a character with this role."
+msgstr "У пользователя должен быть персонаж с данным полномочием."
+
+#: memberaudit_securegroups/models.py:495
+#, fuzzy
+#| msgid "When True, the filter will also include the users alt-characters."
+msgid "When checked, the filter will also include the users alt-characters."
+msgstr ""
+"Когда Истина - фильтр будет также учитывать альтернативных персонажей "
+"пользователя."
+
+#: memberaudit_securegroups/models.py:505
+#, fuzzy
+#| msgid "Member Audit Skill Set"
+msgid "Member Audit Corporation Role"
+msgstr "Аудит наборов умений"
+
+#: memberaudit_securegroups/models.py:575
+#, fuzzy
+#| msgid "The character with the role must be in one of these corporations."
+msgid "The character with the title must be in one of these corporations."
+msgstr "Персонаж с полномочием должен быть в одной из этих корпораций."
+
+#: memberaudit_securegroups/models.py:581
+#, fuzzy
+#| msgid "User must have a character with this role."
+msgid "User must have a character with this title."
+msgstr "У пользователя должен быть персонаж с данным полномочием."
+
+#: memberaudit_securegroups/models.py:586
+msgid "When True, the filter will also include the users alt-characters."
+msgstr ""
+"Когда Истина - фильтр будет также учитывать альтернативных персонажей "
+"пользователя."
+
+#: memberaudit_securegroups/models.py:596
+#, fuzzy
+#| msgid "Member Audit Skill Set"
+msgid "Member Audit Corporation Title"
+msgstr "Аудит наборов умений"
+
+#: memberaudit_securegroups/models.py:661
 msgid "Minimum allowable skill points."
 msgstr "Минимально допустимое количество очков опыта."
 
-#: models.py:469
+#: memberaudit_securegroups/models.py:674
 #, python-brace-format
 msgid "{sp_threshold} skill point"
 msgid_plural "{sp_threshold} skill points"
@@ -134,19 +181,45 @@ msgstr[1] "{sp_threshold} очка опыта"
 msgstr[2] "{sp_threshold} очков опыта"
 msgstr[3] "{sp_threshold} очко опыта"
 
-#: models.py:474
+#: memberaudit_securegroups/models.py:679
 #, python-brace-format
 msgid "Member Audit Skill Points [{skill_point_threshold}]"
 msgstr "Аудит очков опыта [{skill_point_threshold}]"
 
-#: models.py:529
+#: memberaudit_securegroups/models.py:736
+msgid "Any"
+msgstr "Любой"
+
+#: memberaudit_securegroups/models.py:737
+msgid "Mains only"
+msgstr "Только основной"
+
+#: memberaudit_securegroups/models.py:738
+msgid "Alts only"
+msgstr "Только альтернативный"
+
+#: memberaudit_securegroups/models.py:743
+#, fuzzy
+#| msgid ""
+#| "Users must possess all of the skills in <strong>one</strong> of the "
+#| "selected skill sets."
 msgid ""
-"Users must possess all of the skills in <strong>one</strong> of the selected "
-"skill sets."
+"Users must have a character who possess all of the skills in <strong>one</"
+"strong> of the selected skill sets."
 msgstr ""
 "Пользователь должен обладать всеми умениями в <strong>одном</strong> из "
 "выбранных наборов."
 
-#: models.py:541
+#: memberaudit_securegroups/models.py:752
+msgid "Specify the type of character that needs to have the skill set."
+msgstr "Выберите тип персонажа, который должен обладать набором умений."
+
+#: memberaudit_securegroups/models.py:790
 msgid "Member Audit Skill Set"
+msgstr "Аудит наборов умений"
+
+#: memberaudit_securegroups/models.py:875
+#, fuzzy
+#| msgid "Member Audit Skill Set"
+msgid "Member Audit Time in Corporation Filter"
 msgstr "Аудит наборов умений"
