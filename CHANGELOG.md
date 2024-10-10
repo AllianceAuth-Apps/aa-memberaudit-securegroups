@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+## \[1.1.0\] - 2024-10-10
+
+> \[!IMPORTANT\]
+>
+> **This will be the last release in this repository.**\
+> The project has been moved to [GitHub](https://github.com/ppfeufer/aa-ma-securegroups) and will be maintained there.\
+> Please read the [migration guide](https://github.com/ppfeufer/aa-ma-securegroups#step-05-migrating-from-member-audit-securegroups) for more information.
+
 ### Changed
 
 - Dependencies updated
