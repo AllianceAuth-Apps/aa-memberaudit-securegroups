@@ -11,21 +11,29 @@ This is an integration between [Member Audit](https://gitlab.com/ErikKalkoken/aa
 
 ______________________________________________________________________
 
-<!-- mdformat-toc start --slug=gitlab --maxlevel=6 --minlevel=1 -->
+<!-- mdformat-toc start --slug=gitlab --maxlevel=6 --minlevel=2 -->
 
-- [Member Audit Secure Groups Integration for Alliance Auth](#member-audit-secure-groups-integration-for-alliance-auth)
-  - [Features](#features)
-  - [Installation](#installation)
-    - [Requirements](#requirements)
-    - [Step 1: Install the Package](#step-1-install-the-package)
-    - [Step 2: Config](#step-2-config)
-    - [Step 3: Finalize App Installation](#step-3-finalize-app-installation)
-  - [Filters](#filters)
-  - [Changelog](#changelog)
+- [Important](#important)
+- [Features](#features)
+- [Installation](#installation)
+  - [Requirements](#requirements)
+  - [Step 1: Install the Package](#step-1-install-the-package)
+  - [Step 2: Config](#step-2-config)
+  - [Step 3: Finalize App Installation](#step-3-finalize-app-installation)
+- [Filters](#filters)
+- [Changelog](#changelog)
 
 <!-- mdformat-toc end -->
 
 ______________________________________________________________________
+
+## Important<a name="important"></a>
+
+**This project has been moved to [GitHub](https://github.com/ppfeufer/aa-ma-securegroups).**
+
+For migrating, please read the [migration guide](https://github.com/ppfeufer/aa-ma-securegroups#step-05-migrating-from-member-audit-securegroups) on GitHub.
+
+Development here will be discontinued.
 
 ## Features<a name="features"></a>
 
