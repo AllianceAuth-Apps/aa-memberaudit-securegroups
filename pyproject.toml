@@ -14,7 +14,7 @@ keywords = [
     "securegroups",
 ]
 license = { file = "LICENSE" }
-maintainers = [{ name = "Peter Pfeufer", email = "develop@ppfeufer.de" }]
+maintainers = [ { name = "Peter Pfeufer", email = "develop@ppfeufer.de" } ]
 authors = [
     { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
     { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
@@ -35,6 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
@@ -43,19 +44,18 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "aa-memberaudit>=3.3.1",
-    "allianceauth>=3",
+    "aa-memberaudit>=3.10",
+    "allianceauth<5,>=4.3.1",
     "allianceauth-securegroups>=0.5.1",
 ]
-[project.urls]
-Changelog = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md"
-Documentation = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/README.md"
-Homepage = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/"
-Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git"
-Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
+urls.Changelog = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md"
+urls.Documentation = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/README.md"
+urls.Homepage = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/"
+urls.Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git"
+urls.Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
 
 [tool.hatch.build]
-include = ["/memberaudit_securegroups"]
+include = [ "/memberaudit_securegroups" ]
 
 [tool.hatch.version]
 path = "memberaudit_securegroups/__init__.py"

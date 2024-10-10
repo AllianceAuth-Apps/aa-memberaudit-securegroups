@@ -1,5 +1,5 @@
 # Standard Library
-from typing import Iterable
+from collections.abc import Iterable
 
 # Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo

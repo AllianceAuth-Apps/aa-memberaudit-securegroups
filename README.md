@@ -68,7 +68,7 @@ Restart your supervisor services for Auth
 ## Filters<a name="filters"></a>
 
 | Filter Name        | Matches if...                                                           |
-|--------------------|-------------------------------------------------------------------------|
+| ------------------ | ----------------------------------------------------------------------- |
 | Activity Filter    | User has *at least one* character active within the last X days         |
 | Age Filter         | User has *at least one* character over X days old                       |
 | Asset Filter       | User has *at least one* character with *any of* the assets defined      |

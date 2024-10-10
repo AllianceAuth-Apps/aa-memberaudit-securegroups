@@ -5,7 +5,6 @@ The models
 # Standard Library
 import datetime
 from collections import defaultdict
-from typing import List
 
 # Third Party
 import humanize
@@ -555,7 +554,7 @@ class CorporationRoleFilter(BaseFilter):
 
         return output
 
-    def _corporation_ids(self) -> List[int]:
+    def _corporation_ids(self) -> list[int]:
         """
         Return Eve IDs of corporations in this filter.
         """
@@ -644,7 +643,7 @@ class CorporationTitleFilter(BaseFilter):
 
         return output
 
-    def _corporation_ids(self) -> List[int]:
+    def _corporation_ids(self) -> list[int]:
         """
         Return Eve IDs of corporations in this filter.
         """
