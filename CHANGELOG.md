@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## \[In Development\]
 
+### Changed
+
+- Dependencies updated
+  - `allianceauth`>=4.3.1
+  - `aa-memberaudit`>=3.10.0
+- Translations improved
+- Lingua codes updated to match Alliance Auth v4.3.1
+
 ## \[1.0.1\] - 2024-05-16
 
 ### Changed
