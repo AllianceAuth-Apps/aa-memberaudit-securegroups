@@ -1,3 +1,7 @@
+"""
+Celery config
+"""
+
 # Standard Library
 import os
 
@@ -13,7 +17,7 @@ from django.conf import settings  # noqa: E402
 
 app = Celery("testauth")
 
-# Using a string here means the worker don't have to serialize
+# Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 app.config_from_object("django.conf:settings")
 
@@ -21,8 +25,7 @@ app.config_from_object("django.conf:settings")
 # Celery startup if it is unavailable.
 app.conf.broker_connection_retry_on_startup = True
 
-
-# setup priorities ( 0 Highest, 9 Lowest )
+# setup priorities (0 Highest, 9 Lowest)
 app.conf.broker_transport_options = {
     "priority_steps": list(range(10)),  # setup que to have 10 steps
     "queue_order_strategy": "priority",  # setup que to use prio sorting

@@ -11,10 +11,10 @@ import humanize
 
 # Django
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import F, OuterRef, Q, Subquery
+from django.utils.formats import localize
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
@@ -28,10 +28,12 @@ from memberaudit.models import (
     Character,
     CharacterAsset,
     CharacterCorporationHistory,
+    CharacterLocation,
     CharacterRole,
     CharacterSkillSetCheck,
     CharacterTitle,
     General,
+    Location,
     SkillSet,
 )
 
@@ -40,68 +42,18 @@ from eveuniverse.models import EveType
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
+    """
+    Get the threshold date
+
+    :param timedelta_in_days: The timedelta in days
+    :type timedelta_in_days: int
+    :return: The threshold date
+    :rtype: datetime.datetime
+    """
+
     return datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
         days=timedelta_in_days
     )
-
-
-class SingletonModel(models.Model):
-    """
-    SingletonModel
-    """
-
-    class Meta:
-        """
-        Model meta definitions
-        """
-
-        abstract = True
-
-    def delete(self, *args, **kwargs):
-        """
-        "Delete" action
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        pass  # pylint: disable=unnecessary-pass
-
-    def set_cache(self):
-        """
-        Setting cache
-        :return:
-        """
-
-        cache.set(self.__class__.__name__, self)
-
-    def save(self, *args, **kwargs):
-        """
-        "Save" action
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-        self.set_cache()
-
-    @classmethod
-    def load(cls):
-        """
-        Get cache
-        :return:
-        """
-
-        if cache.get(cls.__name__) is None:
-            obj, created = cls.objects.get_or_create(pk=1)
-
-            if not created:
-                obj.set_cache()
-
-        return cache.get(cls.__name__)
 
 
 class BaseFilter(models.Model):
@@ -121,27 +73,37 @@ class BaseFilter(models.Model):
 
         abstract = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
-        Model stringified name
-        :return:
+        Model string representation
+
+        :return: The model string representation
+        :rtype: str
         """
 
         return f"{self.name}: {self.description}"
 
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        This is the check run against a users characters
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         raise NotImplementedError(_("Please create a filter!"))
 
     def audit_filter(self, users: models.QuerySet[User]) -> dict:
         """
-        Return information for each given user wether they passes the filter
+        Return information for each given user weather they pass the filter,
         and a help message shown in the audit feature.
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         raise NotImplementedError(_("Please create an audit function!"))
@@ -156,26 +118,43 @@ class ActivityFilter(BaseFilter):
         help_text=_("Maximum allowable inactivity, in <strong>days</strong>.")
     )
 
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Activity")
+        verbose_name_plural = verbose_name
+
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Filter name
-        :return:
+
+        :return: The filter name
+        :rtype: str
         """
 
         inactivity_threshold = ngettext(
-            f"{self.inactivity_threshold:d} day",
-            f"{self.inactivity_threshold:d} days",
-            self.inactivity_threshold,
+            singular="{inactivity_threshold:d} day",
+            plural="{inactivity_threshold:d} days",
+            number=self.inactivity_threshold,
+        ).format(inactivity_threshold=self.inactivity_threshold)
+
+        return str(
+            _("Activity [Last {inactivity_threshold}]").format(
+                inactivity_threshold=inactivity_threshold
+            )
         )
 
-        return _(f"Activity [Last {inactivity_threshold}]")
-
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        Processing filter
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         threshold_date = _get_threshold_date(
@@ -192,13 +171,14 @@ class ActivityFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         threshold_date = _get_threshold_date(
@@ -221,7 +201,9 @@ class ActivityFilter(BaseFilter):
 
                 for char_user, char_list in chars.items():
                     message = ngettext(
-                        "Active character: ", "Active characters: ", len(char_list)
+                        singular="Active character: ",
+                        plural="Active characters: ",
+                        number=len(char_list),
                     )
 
                     output[char_user] = {
@@ -241,26 +223,41 @@ class AgeFilter(BaseFilter):
         help_text=_("Minimum allowable age, in <strong>days</strong>.")
     )
 
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Character Age")
+        verbose_name_plural = verbose_name
+
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Filter name
-        :return:
+
+        :return: The filter name
+        :rtype: str
         """
 
         age_threshold = ngettext(
-            f"{self.age_threshold:d} day",
-            f"{self.age_threshold:d} days",
+            "{age_threshold:d} day",
+            "{age_threshold:d} days",
             self.age_threshold,
+        ).format(age_threshold=self.age_threshold)
+
+        return str(
+            _("Character age [{age_threshold}]").format(age_threshold=age_threshold)
         )
 
-        return _(f"Character age [{age_threshold}]")
-
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        Processing filter
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         threshold_date = _get_threshold_date(timedelta_in_days=self.age_threshold)
@@ -272,13 +269,14 @@ class AgeFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         threshold_date = _get_threshold_date(timedelta_in_days=self.age_threshold)
@@ -311,24 +309,37 @@ class AssetFilter(BaseFilter):
     """
 
     assets = models.ManyToManyField(
-        EveType,
+        to=EveType,
         help_text=_("User must possess <strong>one</strong> of the selected assets."),
     )
 
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Asset")
+        verbose_name_plural = verbose_name
+
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Filter name
-        :return:
+
+        :return: The filter name
+        :rtype: str
         """
 
-        return _("Member Audit Asset")
+        return str(_("Member Audit Asset"))
 
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        Processing filter
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         return CharacterAsset.objects.filter(
@@ -336,13 +347,29 @@ class AssetFilter(BaseFilter):
             eve_type__in=self.assets.all(),
         ).exists()
 
-    def audit_filter(self, users: models.QuerySet[User]):
+    def audit_filter(self, users: models.QuerySet[User]) -> dict:
         """
         Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         matching_assets = CharacterAsset.objects.filter(
             character=OuterRef("pk"), eve_type__in=list(self.assets.all())
+        )
+        characters = (
+            Character.objects.filter(
+                eve_character__character_ownership__user__in=list(users)
+            )
+            .annotate(asset_name=Subquery(matching_assets.values("eve_type__name")[:1]))
+            .values(
+                "asset_name",
+                user_id=F("eve_character__character_ownership__user_id"),
+                character_name=F("eve_character__character_name"),
+            )
         )
         characters = (
             Character.objects.filter(
@@ -387,43 +414,97 @@ class AssetFilter(BaseFilter):
 
         return output
 
+        output_users = {}
+        for character in characters:
+            user_id = character["user_id"]
+            if user_id not in output_users:
+                output_users[user_id] = []
 
-class ComplianceFilter(BaseFilter, SingletonModel):
+            asset_name = character["asset_name"]
+            if asset_name:
+                character_name = character["character_name"]
+                output_users[character["user_id"]].append(
+                    f"{character_name} ({asset_name})"
+                )
+
+        output = {}
+        for user_id, matches in output_users.items():
+            if matches:
+                message = ", ".join(sorted(matches))
+                check = True
+            else:
+                message = _("No matching assets found")
+                check = False
+
+            output[user_id] = {"message": message, "check": check}
+
+        user_ids = set(users.values_list("id", flat=True))
+        missing_user_ids = user_ids - set(output.keys())
+        for user_id in missing_user_ids:
+            output[user_id] = {
+                "message": _("No audit information found"),
+                "check": False,
+            }
+
+        return output
+
+
+class ComplianceFilter(BaseFilter):
     """
     ComplianceFilter
     """
 
-    @property
-    def name(self):
+    reversed_logic = models.BooleanField(
+        default=False,
+        help_text=_("If set, all members WITHOUT compliance will pass this check."),
+    )
+
+    class Meta:
         """
-        Filter name
-        :return:
+        Model meta definitions
         """
 
-        return _("Compliance")
+        verbose_name = _("Smart Filter: Compliance")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        """
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
+        """
+
+        return str(_("Compliance"))
 
     def process_filter(self, user: User) -> bool:
         """
-        Return True if the user is compliant, else False.
-        :param user:
-        :type user:
-        :return:
-        :rtype:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         unregistered_characters = EveCharacter.objects.filter(
             character_ownership__user=user, memberaudit_character__isnull=True
         )
 
+        if self.reversed_logic:
+            return unregistered_characters.exists()
+
         return not unregistered_characters.exists()
 
     def audit_filter(self, users) -> dict:
         """
-        Return audit data for compliance of given users.
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+        Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         unregistered_characters = EveCharacter.objects.filter(
@@ -444,28 +525,28 @@ class ComplianceFilter(BaseFilter, SingletonModel):
         )
 
         output = {}
+        all_characters_message = _(
+            "All characters have been added to {MEMBERAUDIT_APP_NAME}"
+        ).format(MEMBERAUDIT_APP_NAME=MEMBERAUDIT_APP_NAME)
 
         for user_id in all_memberaudit_users_ids:
             unregistered_chars = user_with_unregistered_characters.get(user_id)
 
-            if not unregistered_chars:
-                output[user_id] = {
-                    "message": _(
-                        f"All characters have been added to {MEMBERAUDIT_APP_NAME}"
-                    ),
-                    "check": True,
-                }
-            else:
+            if unregistered_chars:
                 missing_characters_message = ngettext(
-                    "Missing character: ",
-                    "Missing characters: ",
-                    len(unregistered_chars),
+                    singular="Missing character: ",
+                    plural="Missing characters: ",
+                    number=len(unregistered_chars),
                 )
-                output[user_id] = {
-                    "message": missing_characters_message
-                    + ", ".join(sorted(unregistered_chars)),
-                    "check": False,
-                }
+                message = missing_characters_message + ", ".join(
+                    sorted(unregistered_chars)
+                )
+                check = self.reversed_logic
+            else:
+                message = all_characters_message
+                check = not self.reversed_logic
+
+            output[user_id] = {"message": message, "check": check}
 
         return output
 
@@ -476,7 +557,7 @@ class CorporationRoleFilter(BaseFilter):
     """
 
     corporations = models.ManyToManyField(
-        EveCorporationInfo,
+        to=EveCorporationInfo,
         related_name="+",
         help_text=_(
             "The character with the role must be in one of these corporations."
@@ -491,21 +572,37 @@ class CorporationRoleFilter(BaseFilter):
     include_alts = models.BooleanField(
         default=False,
         help_text=_(
-            "When True, the filter will also include the users alt-characters."
+            "When checked, the filter will also include the users alt-characters."
         ),
     )
 
-    @property
-    def name(self):
+    class Meta:
         """
-        Return name of this filter.
+        Model meta definitions
         """
 
-        return _("Member Audit Corporation Role")
+        verbose_name = _("Smart Filter: Corporation Role")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        """
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
+        """
+
+        return str(_("Member Audit Corporation Role"))
 
     def process_filter(self, user: User) -> bool:
         """
-        Return True when filter applies to the user, else False.
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         qs = CharacterRole.objects.filter(
@@ -520,7 +617,16 @@ class CorporationRoleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
+        """
+        Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
+        """
+
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -542,7 +648,7 @@ class CorporationRoleFilter(BaseFilter):
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {
-            user_id: {"message": "No matching character", "check": False}
+            user_id: {"message": _("No matching character found"), "check": False}
             for user_id in users.values_list("id", flat=True)
         }
 
@@ -557,6 +663,9 @@ class CorporationRoleFilter(BaseFilter):
     def _corporation_ids(self) -> list[int]:
         """
         Return Eve IDs of corporations in this filter.
+
+        :return: The Eve IDs of corporations in this filter
+        :rtype: list[int]
         """
 
         return list(self.corporations.values_list("corporation_id", flat=True))
@@ -568,7 +677,7 @@ class CorporationTitleFilter(BaseFilter):
     """
 
     corporations = models.ManyToManyField(
-        EveCorporationInfo,
+        to=EveCorporationInfo,
         related_name="+",
         help_text=_(
             "The character with the title must be in one of these corporations."
@@ -586,17 +695,33 @@ class CorporationTitleFilter(BaseFilter):
         ),
     )
 
-    @property
-    def name(self):
+    class Meta:
         """
-        Return name of this filter.
+        Model meta definitions
         """
 
-        return _("Member Audit Corporation Title")
+        verbose_name = _("Smart Filter: Corporation Title")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        """
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
+        """
+
+        return str(_("Member Audit Corporation Title"))
 
     def process_filter(self, user: User) -> bool:
         """
-        Return True when filter applies to the user, else False.
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         qs = CharacterTitle.objects.filter(
@@ -610,7 +735,16 @@ class CorporationTitleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
+        """
+        Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
+        """
+
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -631,7 +765,7 @@ class CorporationTitleFilter(BaseFilter):
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {
-            user_id: {"message": "No matching character", "check": False}
+            user_id: {"message": _("No matching character found"), "check": False}
             for user_id in users.values_list("id", flat=True)
         }
 
@@ -646,6 +780,9 @@ class CorporationTitleFilter(BaseFilter):
     def _corporation_ids(self) -> list[int]:
         """
         Return Eve IDs of corporations in this filter.
+
+        :return: The Eve IDs of corporations in this filter
+        :rtype: list[int]
         """
 
         return list(self.corporations.values_list("corporation_id", flat=True))
@@ -660,28 +797,45 @@ class SkillPointFilter(BaseFilter):
         help_text=_("Minimum allowable skill points.")
     )
 
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Skill Points")
+        verbose_name_plural = verbose_name
+
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Filter name
-        :return:
+
+        :return: The filter name
+        :rtype: str
         """
 
         sp_threshold = humanize.intword(self.skill_point_threshold)
 
         skill_point_threshold = ngettext(
-            f"{sp_threshold} skill point",
-            f"{sp_threshold} skill points",
-            self.skill_point_threshold,
+            singular="{sp_threshold} skill point",
+            plural="{sp_threshold} skill points",
+            number=self.skill_point_threshold,
+        ).format(sp_threshold=sp_threshold)
+
+        return str(
+            _("Member Audit Skill Points [{skill_point_threshold}]").format(
+                skill_point_threshold=skill_point_threshold
+            )
         )
 
-        return _(f"Member Audit Skill Points [{skill_point_threshold}]")
-
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        Processing filter
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         return (
@@ -691,13 +845,14 @@ class SkillPointFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         output = defaultdict(lambda: {"message": "", "check": False})
@@ -737,7 +892,7 @@ class SkillSetFilter(BaseFilter):
         ALTS_ONLY = "AO", _("Alts only")
 
     skill_sets = models.ManyToManyField(
-        SkillSet,
+        to=SkillSet,
         help_text=_(
             "Users must have a character who possess all of the skills in "
             "<strong>one</strong> of the selected skill sets."
@@ -751,6 +906,14 @@ class SkillSetFilter(BaseFilter):
         help_text=_("Specify the type of character that needs to have the skill set."),
     )
 
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Skill Set")
+        verbose_name_plural = verbose_name
+
     def save(
         self,
         force_insert=False,  # pylint: disable=unused-argument
@@ -759,18 +922,18 @@ class SkillSetFilter(BaseFilter):
         update_fields=None,  # pylint: disable=unused-argument
     ):
         """
-        Saving action
+        Save the model instance.
 
-        :param force_insert:
-        :type force_insert:
-        :param force_update:
-        :type force_update:
-        :param using:
-        :type using:
-        :param update_fields:
-        :type update_fields:
-        :return:
-        :rtype:
+        :param force_insert: Force insert
+        :type force_insert: bool
+        :param force_update: Force update
+        :type force_update: bool
+        :param using: Using
+        :type using: str
+        :param update_fields: Update fields
+        :type update_fields: list
+        :return: None
+        :rtype: None
         """
 
         # Make sure a character_type is set
@@ -780,19 +943,24 @@ class SkillSetFilter(BaseFilter):
         super().save()
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
-        Filter name
-        :return:
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
         """
 
-        return _("Member Audit Skill Set")
+        return str(_("Member Audit Skill Set"))
 
-    def process_filter(self, user: User):
+    def process_filter(self, user: User) -> bool:
         """
-        Processing filter
-        :param user:
-        :return:
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         qs = CharacterSkillSetCheck.objects.filter(
@@ -808,13 +976,14 @@ class SkillSetFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users):
+    def audit_filter(self, users) -> dict:
         """
         Audit Filter
-        :param users:
-        :type users:
-        :return:
-        :rtype:
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         qs = Character.objects.filter(
@@ -839,7 +1008,7 @@ class SkillSetFilter(BaseFilter):
             user_with_characters[user_id["user_id"]].append(f"{character_name}")
 
         output = {
-            user_id: {"message": "No matching character", "check": False}
+            user_id: {"message": _("No matching character found"), "check": False}
             for user_id in users.values_list("id", flat=True)
         }
 
@@ -853,25 +1022,52 @@ class SkillSetFilter(BaseFilter):
 
 
 class TimeInCorporationFilter(BaseFilter):
+    """
+    Filter for time in a corporation.
+    """
+
     minimum_days = models.PositiveIntegerField(
         default=30,
-        help_text=(
+        help_text=_(
             "Minimum number of days a main character needs to be member "
             "of his/her current corporation."
         ),
     )
 
-    @property
-    def name(self):
+    reversed_logic = models.BooleanField(
+        default=False,
+        help_text=_(
+            "If set, all members with LESS than the minimum days will pass this check."
+        ),
+    )
+
+    class Meta:
         """
-        Return name of this filter.
+        Model meta definitions
         """
 
-        return _("Member Audit Time in Corporation Filter")
+        verbose_name = _("Smart Filter: Time in Corporation")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        """
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
+        """
+
+        return str(_("Member Audit Time in Corporation Filter"))
 
     def process_filter(self, user: User) -> bool:
         """
-        Return True when filter applies to the user, else False.
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
         """
 
         try:
@@ -884,15 +1080,26 @@ class TimeInCorporationFilter(BaseFilter):
             .order_by("-record_id")
             .first()
         )
+
         if not history:
             return False
 
-        passes = (now() - history.start_date).days >= self.minimum_days
+        passes = (
+            (now() - history.start_date).days < self.minimum_days
+            if self.reversed_logic
+            else (now() - history.start_date).days >= self.minimum_days
+        )
+
         return passes
 
     def audit_filter(self, users) -> dict:
         """
-        Return result of filter audit for given users.
+        Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
         """
 
         current_membership = (
@@ -907,15 +1114,136 @@ class TimeInCorporationFilter(BaseFilter):
         )
 
         output = defaultdict(lambda: {"message": "", "check": False})
+
         for user in users_days_in_corporation:
             if not user.start_date:
                 check = False
-                msg = "No audit info"
+                msg = _("No audit information found")
             else:
                 days_in_corporation = (now() - user.start_date).days
-                check = days_in_corporation >= self.minimum_days
-                msg = f"{days_in_corporation} days"
+                check = (
+                    days_in_corporation < self.minimum_days
+                    if self.reversed_logic
+                    else days_in_corporation >= self.minimum_days
+                )
+                end_date = localize(
+                    (
+                        user.start_date + datetime.timedelta(days=self.minimum_days)
+                    ).date()
+                )
+                msg = (
+                    ngettext(
+                        singular="{days_in_corporation:d} day",
+                        plural="{days_in_corporation:d} days",
+                        number=days_in_corporation,
+                    ).format(days_in_corporation=days_in_corporation)
+                    if not self.reversed_logic
+                    else ngettext(
+                        singular="{days_in_corporation:d} day (End date: {end_date})",
+                        plural="{days_in_corporation:d} days (End date: {end_date})",
+                        number=days_in_corporation,
+                    ).format(days_in_corporation=days_in_corporation, end_date=end_date)
+                )
 
             output[user.id] = {"message": msg, "check": check}
+
+        return output
+
+
+class HomeStationFilter(BaseFilter):
+    """
+    Filter for home station.
+    """
+
+    home_station = models.ForeignKey(
+        to=Location,
+        related_name="home_station_filter",
+        on_delete=models.CASCADE,
+        help_text=_("User must have a character with this home station."),
+    )
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True, the filter will also include the users alt-characters."
+        ),
+    )
+
+    class Meta:
+        """
+        Model meta definitions
+        """
+
+        verbose_name = _("Smart Filter: Home Station (Death Clone)")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        """
+        Return name of this filter.
+
+        :return: The filter name
+        :rtype: str
+        """
+
+        return str(_("Member Audit Home Station"))
+
+    def process_filter(self, user: User) -> bool:
+        """
+        Process the filter
+
+        :param user: The user
+        :type user: User
+        :return: Return True when filter applies to the user, else False.
+        :rtype: bool
+        """
+
+        qs = CharacterLocation.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            location=self.home_station,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        return qs.exists()
+
+    def audit_filter(self, users) -> dict:
+        """
+        Audit Filter
+
+        :param users: The users
+        :type users: models.QuerySet[User]
+        :return: The audit information
+        :rtype: dict
+        """
+
+        qs = CharacterLocation.objects.filter(
+            character__eve_character__character_ownership__user__in=list(users),
+            location=self.home_station,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
+            user_id=F("character__eve_character__character_ownership__user_id"),
+            character_name=F("character__eve_character__character_name"),
+        )
+
+        user_with_characters = defaultdict(list)
+        for character in matching_characters:
+            character_name = character["character_name"]
+            user_with_characters[character["user_id"]].append(f"{character_name}")
+
+        output = {
+            user_id: {"message": _("No matching character found"), "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
+
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
 
         return output

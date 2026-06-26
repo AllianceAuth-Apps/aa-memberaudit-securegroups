@@ -13,6 +13,7 @@ from memberaudit_securegroups.models import (
     ComplianceFilter,
     CorporationRoleFilter,
     CorporationTitleFilter,
+    HomeStationFilter,
     SkillPointFilter,
     SkillSetFilter,
     TimeInCorporationFilter,
@@ -20,7 +21,14 @@ from memberaudit_securegroups.models import (
 
 
 @hooks.register("secure_group_filters")
-def filters():
+def filters() -> list:
+    """
+    Secure group filter
+
+    :return: Secure group filters
+    :rtype: list
+    """
+
     return [
         ActivityFilter,
         AgeFilter,
@@ -28,6 +36,7 @@ def filters():
         ComplianceFilter,
         CorporationRoleFilter,
         CorporationTitleFilter,
+        HomeStationFilter,
         SkillPointFilter,
         SkillSetFilter,
         TimeInCorporationFilter,

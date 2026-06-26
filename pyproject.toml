@@ -14,29 +14,28 @@ keywords = [
     "securegroups",
 ]
 license = { file = "LICENSE" }
-maintainers = [ { name = "Peter Pfeufer", email = "develop@ppfeufer.de" } ]
-authors = [
-    { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
+maintainers = [
     { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
+]
+authors = [
+    { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
+    { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
     { name = "Rebecca Murphy", email = "rebecca@rcmurphy.me" },
 ]
-requires-python = "~=3.8"
+requires-python = ">=3.10,<3.14"
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 4.0",
     "Framework :: Django :: 4.2",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
@@ -45,17 +44,26 @@ dynamic = [
 ]
 dependencies = [
     "aa-memberaudit>=3.10",
-    "allianceauth<5,>=4.3.1",
+    "allianceauth>=4.3.1,<5",
     "allianceauth-securegroups>=0.5.1",
 ]
-urls.Changelog = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md"
-urls.Documentation = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/README.md"
-urls.Homepage = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/"
-urls.Source = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups.git"
-urls.Tracker = "https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/issues"
+optional-dependencies.tests-allianceauth-latest = [
+    "coverage",
+    "django-webtest",
+]
+urls.Changelog = "https://github.com/ppfeufer/aa-ma-securegroups/blob/master/CHANGELOG.md"
+urls.Codecov = "https://codecov.io/gh/ppfeufer/aa-ma-securegroups"
+urls.Discord = "https://discord.gg/fjnHAmk"
+urls.Documentation = "https://github.com/ppfeufer/aa-ma-securegroups/blob/master/README.md"
+urls.Donation = "https://ko-fi.com/ppfeufer"
+urls.GitHub = "https://github.com/ppfeufer/aa-ma-securegroups"
+urls.Tracker = "https://github.com/ppfeufer/aa-ma-securegroups/issues"
+urls.Translation = "https://weblate.ppfeufer.de/projects/alliance-auth-apps/aa-member-audit-secure-groups/"
 
 [tool.hatch.build]
-include = [ "/memberaudit_securegroups" ]
+include = [
+    "/memberaudit_securegroups",
+]
 
 [tool.hatch.version]
 path = "memberaudit_securegroups/__init__.py"
