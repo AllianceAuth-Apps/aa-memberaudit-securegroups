@@ -31,10 +31,7 @@ INSTALLED_APPS = [
     "django_bootstrap5",  # https://github.com/zostera/django-bootstrap5
     "sortedm2m",
     "esi",
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-========
     "allianceauth.framework",
->>>>>>>> new-version-2:testauth/settings/base.py
     "allianceauth.authentication",
     "allianceauth.services",
     "allianceauth.eveonline",
@@ -47,12 +44,9 @@ INSTALLED_APPS = [
     "allianceauth.theme.darkly",
     "allianceauth.theme.flatly",
     "allianceauth.theme.materia",
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-========
     "allianceauth.custom_css",
     "allianceauth.crontab",
     "sri",
->>>>>>>> new-version-2:testauth/settings/base.py
 ]
 
 SRI_ALGORITHM = "sha512"
@@ -69,22 +63,17 @@ CELERYBEAT_SCHEDULE = {
     "esi_cleanup_token": {
         "task": "esi.tasks.cleanup_token",
         "schedule": crontab(minute="0", hour="0"),
+        "apply_offset": True,
     },
     "run_model_update": {
         "task": "allianceauth.eveonline.tasks.run_model_update",
         "schedule": crontab(minute="0", hour="*/6"),
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-========
         "apply_offset": True,
->>>>>>>> new-version-2:testauth/settings/base.py
     },
     "check_all_character_ownership": {
         "task": "allianceauth.authentication.tasks.check_all_character_ownership",
         "schedule": crontab(minute="0", hour="*/4"),
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-========
         "apply_offset": True,
->>>>>>>> new-version-2:testauth/settings/base.py
     },
     "analytics_daily_stats": {
         "task": "allianceauth.analytics.tasks.analytics_daily_stats",
@@ -101,6 +90,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "allianceauth.authentication.middleware.UserSettingsMiddleware",
+    "allianceauth.middleware.DeviceDetectionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -113,19 +103,6 @@ ROOT_URLCONF = "allianceauth.urls"
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale/"),)
 
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-LANGUAGES = (
-    ("en", "English"),
-    ("de", "German"),
-    ("es", "Spanish"),
-    ("zh-hans", "Chinese Simplified"),
-    ("ru", "Russian"),
-    ("ko", "Korean"),
-    ("fr", "French"),
-    ("ja", "Japanese"),
-    ("it", "Italian"),
-    ("uk", "Ukrainian"),
-========
 LANGUAGES = (  # Sorted by Language Code alphabetical order + English at top
     ("en", _("English")),
     # ("cs-cz", _("Czech")), #Not yet at 50% translated
@@ -140,7 +117,6 @@ LANGUAGES = (  # Sorted by Language Code alphabetical order + English at top
     ("ru", _("Russian")),
     ("uk", _("Ukrainian")),
     ("zh-hans", _("Simplified Chinese")),
->>>>>>>> new-version-2:testauth/settings/base.py
 )
 
 # Django's language codes are different from some of the libraries we use,
@@ -244,6 +220,15 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "allianceauth.framework.staticfiles.storage.AaManifestStaticFilesStorage",
+    },
+}
+
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     os.path.join(PROJECT_DIR, "static"),
@@ -256,17 +241,14 @@ MESSAGE_TAGS = {messages.ERROR: "danger error"}
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-<<<<<<<< HEAD:testauth/settings_aa4/base.py
-        "LOCATION": "redis://127.0.0.1:6379/1",  # change the 1 here to change the database used
-========
         "LOCATION": "redis://127.0.0.1:6379/1",  # change the 1 here for the DB used
->>>>>>>> new-version-2:testauth/settings/base.py
     }
 }
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 DEBUG = True
+DISPLAY_DEBUG = True
 ALLOWED_HOSTS = ["*"]
 DATABASES = {
     "default": {
