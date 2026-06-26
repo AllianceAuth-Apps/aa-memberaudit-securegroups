@@ -2,13 +2,9 @@
 Wrapper for checks in AA Member Audit
 """
 
-# Django
 from django.contrib.auth.models import User
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCharacter
-
-# Member Audit
 from memberaudit.models import General
 
 

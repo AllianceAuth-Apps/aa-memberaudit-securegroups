@@ -2,10 +2,8 @@
 Hook into Alliance Auth
 """
 
-# Alliance Auth
 from allianceauth import hooks
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     ActivityFilter,
     AgeFilter,

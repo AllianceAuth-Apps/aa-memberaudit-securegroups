@@ -2,11 +2,9 @@
 App's base definitions
 """
 
-# Django
 from django.apps import AppConfig
 from django.utils.text import format_lazy
 
-# Memberaudit Securegroups
 from memberaudit_securegroups import __title_translated__, __version__
 
 

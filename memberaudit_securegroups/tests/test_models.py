@@ -2,18 +2,14 @@
 Tests for models of the memberaudit_securegroups app
 """
 
-# Standard Library
 import datetime as dt
 
-# Django
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils.timezone import now
+from eveuniverse.models import EveEntity, EveType
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
-
-# Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories import (
@@ -34,10 +30,6 @@ from memberaudit.tests.utils import (
     create_user_from_evecharacter_with_access,
 )
 
-# Alliance Auth (External Libs)
-from eveuniverse.models import EveEntity, EveType
-
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     AssetFilter,
     ComplianceFilter,

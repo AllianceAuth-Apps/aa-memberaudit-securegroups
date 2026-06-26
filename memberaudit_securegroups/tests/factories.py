@@ -1,13 +1,8 @@
-# Standard Library
 from collections.abc import Iterable
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
-
-# Member Audit
 from memberaudit.models import CharacterRole
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,

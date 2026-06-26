@@ -1,28 +1,20 @@
-# Standard Library
 import datetime as dt
 
-# Third Party
 from securegroups.models import SmartFilter, SmartGroup
 from securegroups.tasks import run_smart_group_update
 
-# Django
 from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.utils.timezone import now
+from eveuniverse.models import EveEntity
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
-
-# Member Audit
 from memberaudit.tests.testdata.factories import (
     create_character_corporation_history,
     create_character_title,
 )
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.utils import create_memberaudit_character
-
-# Alliance Auth (External Libs)
-from eveuniverse.models import EveEntity
 
 from .factories import (
     create_corporation_title_filter,

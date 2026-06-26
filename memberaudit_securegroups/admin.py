@@ -2,23 +2,18 @@
 Admin pages
 """
 
-# Standard Library
 from typing import Any
 
-# Third Party
 import humanize
 
-# Django
 from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
-# Member Audit
 from memberaudit.models import CharacterRole, Location
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     ActivityFilter,
     AgeFilter,

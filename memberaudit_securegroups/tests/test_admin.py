@@ -1,16 +1,11 @@
-# Django
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCorporationInfo
-
-# Member Audit
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.load_entities import load_entities
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,

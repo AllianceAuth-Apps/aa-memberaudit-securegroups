@@ -1,15 +1,11 @@
-# Standard Library
 from unittest.mock import patch
 
-# Django
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-# Alliance Auth
 from allianceauth.authentication.models import CharacterOwnership
 from allianceauth.eveonline.models import EveCharacter
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 

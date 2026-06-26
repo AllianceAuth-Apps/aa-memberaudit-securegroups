@@ -79,6 +79,15 @@ DEFAULT_FROM_EMAIL = ""
 # workarounds to suppress warnings
 LOGGING = None
 STATICFILES_DIRS = []
+ANALYTICS_DISABLED = True
+
+# Discord Configuration
+DISCORD_GUILD_ID = "1234567890"
+DISCORD_CALLBACK_URL = ""
+DISCORD_APP_ID = ""
+DISCORD_APP_SECRET = ""
+DISCORD_BOT_TOKEN = "killtrackerdummytoken"
+DISCORD_SYNC_NAMES = False
 
 # Workaround for fixing the "Missing staticfiles manifest entry" bug in tests
 STORAGES["staticfiles"][

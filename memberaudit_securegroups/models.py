@@ -2,14 +2,11 @@
 The models
 """
 
-# Standard Library
 import datetime
 from collections import defaultdict
 
-# Third Party
 import humanize
 
-# Django
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -18,11 +15,9 @@ from django.utils.formats import localize
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
+from eveuniverse.models import EveType
 
-# Alliance Auth
 from allianceauth.eveonline.models import EveCharacter, EveCorporationInfo
-
-# Member Audit
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import (
     Character,
@@ -36,9 +31,6 @@ from memberaudit.models import (
     Location,
     SkillSet,
 )
-
-# Alliance Auth (External Libs)
-from eveuniverse.models import EveType
 
 
 def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
