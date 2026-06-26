@@ -371,48 +371,6 @@ class AssetFilter(BaseFilter):
                 character_name=F("eve_character__character_name"),
             )
         )
-        characters = (
-            Character.objects.filter(
-                eve_character__character_ownership__user__in=list(users)
-            )
-            .annotate(asset_name=Subquery(matching_assets.values("eve_type__name")[:1]))
-            .values(
-                "asset_name",
-                user_id=F("eve_character__character_ownership__user_id"),
-                character_name=F("eve_character__character_name"),
-            )
-        )
-
-        output_users = {}
-        for character in characters:
-            user_id = character["user_id"]
-            if user_id not in output_users:
-                output_users[user_id] = []
-
-            asset_name = character["asset_name"]
-            if asset_name:
-                character_name = character["character_name"]
-                output_users[character["user_id"]].append(
-                    f"{character_name} ({asset_name})"
-                )
-
-        output = {}
-        for user_id, matches in output_users.items():
-            if matches:
-                message = ", ".join(sorted(matches))
-                check = True
-            else:
-                message = "No matching assets"
-                check = False
-
-            output[user_id] = {"message": message, "check": check}
-
-        user_ids = set(users.values_list("id", flat=True))
-        missing_user_ids = user_ids - set(output.keys())
-        for user_id in missing_user_ids:
-            output[user_id] = {"message": "No audit info", "check": False}
-
-        return output
 
         output_users = {}
         for character in characters:
@@ -572,7 +530,7 @@ class CorporationRoleFilter(BaseFilter):
     include_alts = models.BooleanField(
         default=False,
         help_text=_(
-            "When checked, the filter will also include the users alt-characters."
+            "When True, the filter will also include the users alt-characters."
         ),
     )
 

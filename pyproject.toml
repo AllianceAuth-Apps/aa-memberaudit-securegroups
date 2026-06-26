@@ -22,11 +22,12 @@ authors = [
     { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
     { name = "Rebecca Murphy", email = "rebecca@rcmurphy.me" },
 ]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10"
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
@@ -43,9 +44,9 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "aa-memberaudit>=3.10",
-    "allianceauth>=4.3.1,<5",
-    "allianceauth-securegroups>=0.5.1",
+    "aa-memberaudit>=5",
+    "allianceauth>=5,<6",
+    "allianceauth-securegroups>=0.10.1",
 ]
 optional-dependencies.tests-allianceauth-latest = [
     "coverage",
