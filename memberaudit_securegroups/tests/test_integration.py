@@ -4,17 +4,17 @@ from securegroups.models import SmartFilter, SmartGroup
 from securegroups.tasks import run_smart_group_update
 
 from django.contrib.auth.models import Group
-from django.test import TestCase
 from django.utils.timezone import now
-from eveuniverse.models import EveEntity
+from eveuniverse.tests.testdata.factories_2 import EveEntityCorporationFactory
 
-from allianceauth.eveonline.models import EveCorporationInfo
-from memberaudit.tests.testdata.factories import (
-    create_character_corporation_history,
-    create_character_title,
+from app_utils.testdata_factories import EveCharacterFactory, EveCorporationInfoFactory
+from app_utils.testing import NoSocketsTestCase
+from memberaudit.tests.testdata.factories_2 import (
+    CharacterCorporationHistoryFactory,
+    CharacterFactory,
+    CharacterTitleFactory,
+    UserMainBasicAccessFactory,
 )
-from memberaudit.tests.testdata.load_entities import load_entities
-from memberaudit.tests.utils import create_memberaudit_character
 
 from memberaudit_securegroups.tests.factories_2 import (
     CorporationTitleFilterFactory,
@@ -22,27 +22,36 @@ from memberaudit_securegroups.tests.factories_2 import (
 )
 
 
-class TestFilters(TestCase):
+class TestFilters(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        load_entities()
         cls.group = Group.objects.create(name="Leadership")
-        cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
-        cls.corporation_entity_2001 = EveEntity.objects.get(id=2001)
-        cls.corporation_entity_2002 = EveEntity.objects.get(id=2002)
+        cls.corporation = EveCorporationInfoFactory()
+        cls.corporation_entity = EveEntityCorporationFactory(
+            id=cls.corporation.corporation_id
+        )
+        cls.character_1 = CharacterFactory(
+            user=UserMainBasicAccessFactory(
+                main_character__character=EveCharacterFactory(
+                    corporation=cls.corporation
+                )
+            )
+        )
+        cls.character_2 = CharacterFactory(
+            user=UserMainBasicAccessFactory(
+                main_character__character=EveCharacterFactory(
+                    corporation=cls.corporation
+                )
+            )
+        )
 
     def test_corporation_title_filter(self):
         # given
-        character_1001 = create_memberaudit_character(1001)  # in corp 2001
-        user_1001 = character_1001.character_ownership.user
-        create_character_title(character=character_1001, name="CEO")
+        CharacterTitleFactory(character=self.character_1, name="CEO")
+        CharacterTitleFactory(character=self.character_2, name="Diplomat")
 
-        character_1002 = create_memberaudit_character(1002)  # in corp 2001
-        user_1002 = character_1002.character_ownership.user
-        create_character_title(character=character_1001, name="Diplomat")
-
-        CorporationTitleFilterFactory(corporations=[self.corporation_2001], title="CEO")
+        CorporationTitleFilterFactory(corporations=[self.corporation], title="CEO")
         smart_group = SmartGroup.objects.create(group=self.group, auto_group=True)
         title_filter = SmartFilter.objects.first()
         smart_group.filters.add(title_filter)
@@ -54,24 +63,20 @@ class TestFilters(TestCase):
         self.assertEqual(
             title_filter.filter_object.name, "Member Audit Corporation Title"
         )
-        self.assertIn(user_1001, self.group.user_set.all())
-        self.assertNotIn(user_1002, self.group.user_set.all())
+        self.assertIn(self.character_1.user, self.group.user_set.all())
+        self.assertNotIn(self.character_2.user, self.group.user_set.all())
 
     def test_time_in_corporation_filter(self):
         # given
-        character_1001 = create_memberaudit_character(1001)
-        user_1001 = character_1001.user
-        create_character_corporation_history(
-            character=character_1001,
-            corporation=self.corporation_entity_2001,
+        CharacterCorporationHistoryFactory(
+            character=self.character_1,
+            corporation=self.corporation_entity,
             start_date=now() - dt.timedelta(days=31),
         )
 
-        character_1002 = create_memberaudit_character(1002)
-        user_1002 = character_1002.user
-        create_character_corporation_history(
-            character=character_1002,
-            corporation=self.corporation_entity_2001,
+        CharacterCorporationHistoryFactory(
+            character=self.character_2,
+            corporation=self.corporation_entity,
             start_date=now() - dt.timedelta(days=29),
         )
 
@@ -88,5 +93,5 @@ class TestFilters(TestCase):
             my_filter.filter_object.name,
             "Member Audit Time in Corporation Filter",
         )
-        self.assertIn(user_1001, self.group.user_set.all())
-        self.assertNotIn(user_1002, self.group.user_set.all())
+        self.assertIn(self.character_1.user, self.group.user_set.all())
+        self.assertNotIn(self.character_2.user, self.group.user_set.all())

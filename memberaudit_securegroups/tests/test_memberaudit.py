@@ -1,103 +1,48 @@
-from unittest.mock import patch
-
-from django.contrib.auth.models import User
-from django.test import TestCase
-
-from allianceauth.authentication.models import CharacterOwnership
-from allianceauth.eveonline.models import EveCharacter
+from app_utils.testdata_factories import EveCharacterFactory, UserFactory
+from app_utils.testing import NoSocketsTestCase
+from memberaudit.tests.testdata.factories_2 import (
+    CharacterFactory,
+    UserMainBasicAccessFactory,
+)
 
 from memberaudit_securegroups.memberaudit import MemberAuditChecks
 
 
-class MemberAuditChecksTests(TestCase):
-    """
-    Test cases for MemberAuditChecks
-    """
+class MemberAuditChecksTests(NoSocketsTestCase):
+    def test_compliance_returns_correct_data_when_user_is_compliant(self):
+        # given
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
 
-    def setUp(self):
-        """
-        Set up test data for MemberAuditChecks tests.
+        # when
+        result = MemberAuditChecks.compliance(user)
 
-        :return:
-        :rtype:
-        """
-
-        self.user = User.objects.create(username="testuser")
-        self.character = EveCharacter.objects.create(
-            character_id=12345,
-            character_name="Test Character",
-            corporation_id=1234586,
-            alliance_id=654321,
-        )
-        self.ownership = CharacterOwnership.objects.create(
-            user=self.user, character=self.character
-        )
-        self.character.character_ownership = self.ownership
-        self.character.save()
-
-    @patch("memberaudit.models.General.compliant_users")
-    def test_compliance_returns_correct_data_when_user_is_compliant(
-        self, mock_compliant_users
-    ):
-        """
-        Test that the compliance method returns correct data when the user is compliant.
-
-        :param mock_compliant_users:
-        :type mock_compliant_users:
-        :return:
-        :rtype:
-        """
-
-        mock_compliant_users.return_value.filter.return_value.exists.return_value = True
-
-        result = MemberAuditChecks.compliance(self.user)
-
+        # then
         self.assertTrue(result["is_compliant"])
-        self.assertEqual(len(result["unregistered_chars"]), 1)
-        self.assertEqual(
-            result["unregistered_chars"][0].character_name, "Test Character"
-        )
+        self.assertEqual(len(result["unregistered_chars"]), 0)
 
-    @patch("memberaudit.models.General.compliant_users")
-    def test_compliance_returns_correct_data_when_user_is_not_compliant(
-        self, mock_compliant_users
-    ):
-        """
-        Test that the compliance method returns correct data when the user is not compliant.
+    def test_compliance_returns_correct_data_when_user_is_not_compliant(self):
+        # given
+        character = EveCharacterFactory(character_name="Test Character")
+        user = UserMainBasicAccessFactory(main_character__character=character)
 
-        :param mock_compliant_users:
-        :type mock_compliant_users:
-        :return:
-        :rtype:
-        """
+        # when
+        result = MemberAuditChecks.compliance(user)
 
-        mock_compliant_users.return_value.filter.return_value.exists.return_value = (
-            False
-        )
-
-        result = MemberAuditChecks.compliance(self.user)
-
+        # then
         self.assertFalse(result["is_compliant"])
         self.assertEqual(len(result["unregistered_chars"]), 1)
         self.assertEqual(
             result["unregistered_chars"][0].character_name, "Test Character"
         )
 
-    @patch("memberaudit.models.General.compliant_users")
-    def test_compliance_handles_user_with_no_characters(self, mock_compliant_users):
-        """
-        Test that the compliance method handles a user with no characters.
+    def test_compliance_handles_user_with_no_characters(self):
+        # given
+        user_without_chars = UserFactory()
 
-        :param mock_compliant_users:
-        :type mock_compliant_users:
-        :return:
-        :rtype:
-        """
-
-        mock_compliant_users.return_value.filter.return_value.exists.return_value = True
-        user_without_chars = User.objects.create(username="nocharuser")
-
+        # when
         result = MemberAuditChecks.compliance(user_without_chars)
 
-        self.assertTrue(result["is_compliant"])
+        # then
+        self.assertFalse(result["is_compliant"])
         self.assertEqual(len(result["unregistered_chars"]), 0)

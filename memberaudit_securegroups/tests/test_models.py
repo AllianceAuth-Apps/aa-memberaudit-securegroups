@@ -1,33 +1,27 @@
-"""
-Tests for models of the memberaudit_securegroups app
-"""
-
 import datetime as dt
 
 from django.contrib.auth.models import User
-from django.test import TestCase
 from django.utils.timezone import now
-from eveuniverse.models import EveEntity, EveType
+from eveuniverse.tests.testdata.factories_2 import (
+    EveEntityCorporationFactory,
+    EveTypeFactory,
+)
 
-from allianceauth.eveonline.models import EveCorporationInfo
+from app_utils.testdata_factories import EveCharacterFactory, EveCorporationInfoFactory
+from app_utils.testing import NoSocketsTestCase, add_character_to_user
 from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import CharacterRole
-from memberaudit.tests.testdata.factories import (
-    create_character_asset,
-    create_character_corporation_history,
-    create_character_role,
-    create_character_skill_set_check,
-    create_character_title,
-    create_skill_set,
-    create_skill_set_skill,
-)
-from memberaudit.tests.testdata.load_entities import load_entities
-from memberaudit.tests.testdata.load_eveuniverse import load_eveuniverse
-from memberaudit.tests.utils import (
-    add_auth_character_to_user,
-    add_memberaudit_character_to_user,
-    create_memberaudit_character,
-    create_user_from_evecharacter_with_access,
+from memberaudit.tests.testdata.factories_2 import (
+    CharacterAssetFactory,
+    CharacterCorporationHistoryFactory,
+    CharacterFactory,
+    CharacterRoleFactory,
+    CharacterSkillSetCheckFactory,
+    CharacterTitleFactory,
+    NavigationSkillTypeFactory,
+    SkillSetFactory,
+    SkillSetSkillFactory,
+    UserMainBasicAccessFactory,
 )
 
 from memberaudit_securegroups.models import (
@@ -43,50 +37,20 @@ from memberaudit_securegroups.tests.factories_2 import (
 
 
 def make_user_queryset(*users):
-    """
-    Create a queryset of users from a list of users.
-
-    :param users:
-    :type users:
-    :return:
-    :rtype:
-    """
-
     params = {"pk__in": [obj.pk for obj in users]}
 
     return User.objects.filter(**params)
 
 
-class TestAssetFilter(TestCase):
-    """
-    Tests for the `AssetFilter` model
-    """
-
+class TestAssetFilter_ProcessFilter(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Setup for the test case
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
 
-        load_entities()
-        load_eveuniverse()
-
-        cls.character_1001 = create_memberaudit_character(1001)
-        cls.user_1 = cls.character_1001.character_ownership.user
+        cls.user = UserMainBasicAccessFactory()
+        cls.character = CharacterFactory(user=cls.user)
 
     def test_should_return_name(self):
-        """
-        Test that the name is returned
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = AssetFilter.objects.create()
 
@@ -94,337 +58,247 @@ class TestAssetFilter(TestCase):
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_asset(self):
-        """
-        Test that the filter returns False when the user does not have the asset
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = AssetFilter.objects.create()
-        merlin_type = EveType.objects.get(name="Merlin")
-        my_filter.assets.add(merlin_type)
-        astrahus_type = EveType.objects.get(name="Astrahus")
-        create_character_asset(character=self.character_1001, eve_type=astrahus_type)
+        eve_type_1 = EveTypeFactory()
+        my_filter.assets.add(eve_type_1)
+        type_2 = EveTypeFactory()
+        CharacterAssetFactory(character=self.character, eve_type=type_2)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_asset(self):
-        """
-        Test that the filter returns True when the user has the asset
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = AssetFilter.objects.create()
-        merlin_type = EveType.objects.get(name="Merlin")
-        my_filter.assets.add(merlin_type)
-        create_character_asset(character=self.character_1001, eve_type=merlin_type)
+        eve_type = EveTypeFactory()
+        my_filter.assets.add(eve_type)
+        CharacterAssetFactory(character=self.character, eve_type=eve_type)
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_at_least_one_asset(self):
-        """
-        Test that the filter returns True when the user has at least one asset
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = AssetFilter.objects.create()
-        merlin_type = EveType.objects.get(name="Merlin")
-        astrahus_type = EveType.objects.get(name="Astrahus")
-        my_filter.assets.add(merlin_type, astrahus_type)
-        create_character_asset(character=self.character_1001, eve_type=merlin_type)
+        eve_type_1 = EveTypeFactory()
+        eve_type_2 = EveTypeFactory()
+        my_filter.assets.add(eve_type_1, eve_type_2)
+        CharacterAssetFactory(character=self.character, eve_type=eve_type_1)
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
+
+
+class TestAssetFilter_AuditFilters(NoSocketsTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+
+        cls.user = UserMainBasicAccessFactory()
+        cls.character = CharacterFactory(user=cls.user)
 
     def test_should_return_audit_data_for_one_matching_one_not_matching_user(self):
-        """
-        Test that the audit filter returns the correct data for two users
-
-        :return:
-        :rtype:
-        """
-
         # given a filter for Merlins
         my_filter = AssetFilter.objects.create()
-        merlin_type = EveType.objects.get(name="Merlin")
-        my_filter.assets.add(merlin_type)
+        eve_type = EveTypeFactory(name="Merlin")
+        my_filter.assets.add(eve_type)
 
-        # and main user's character has a Merlin
-        create_character_asset(character=self.character_1001, eve_type=merlin_type)
+        # and user's character has a Merlin
+        user_1 = UserMainBasicAccessFactory(
+            main_character__character=EveCharacterFactory(character_name="Bruce Wayne")
+        )
+        character_1 = CharacterFactory(user=user_1)
+        CharacterAssetFactory(character=character_1, eve_type=eve_type)
 
         # and main user's 2nd character also has a Merlin
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_asset(character=character_1002, eve_type=merlin_type)
+        character_2 = CharacterFactory(
+            user=user_1,
+            is_main=False,
+            alt_character=EveCharacterFactory(character_name="Clark Kent"),
+        )
+        CharacterAssetFactory(character=character_2, eve_type=eve_type)
 
         # and a 2nd user has a registered character, but no Merlin
-        character_1003 = create_memberaudit_character(1003)
-        user_1002 = character_1003.character_ownership.user
+        user_2 = UserMainBasicAccessFactory()
+        CharacterFactory(user=user_2)
+
         # and a 3rd user is not registered
-        user_2, _ = create_user_from_evecharacter_with_access(1101)
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_1002, user_2)
+        users = make_user_queryset(user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertDictEqual(
-            result[self.user_1.id],
+            result[user_1.id],
             {"message": "Bruce Wayne (Merlin), Clark Kent (Merlin)", "check": True},
         )
         self.assertDictEqual(
-            result[user_1002.id],
+            result[user_2.id],
             {"message": "No matching assets found", "check": False},
         )
         self.assertDictEqual(
-            result[user_2.id], {"message": "No audit information found", "check": False}
+            result[user_3.id], {"message": "No audit information found", "check": False}
         )
         self.assertEqual(len(result), 3)
 
     def test_should_return_audit_data_when_no_matches(self):
-        """
-        Test that the audit filter returns the correct data for a user with no matching assets
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = AssetFilter.objects.create()
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 1)
         self.assertDictEqual(
-            result[self.user_1.id],
+            result[self.user.id],
             {"message": "No matching assets found", "check": False},
         )
 
 
-class TestComplianceFilter(TestCase):
-    """
-    Tests for the `ComplianceFilter` model
-    """
-
+class TestComplianceFilter_ProcessFiler(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Setup for the test case
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
-
-        load_entities()
-
-        cls.user_1, _ = create_user_from_evecharacter_with_access(1001)
         cls.compliance_filter = ComplianceFilter.objects.create()
         cls.compliance_filter_reversed = ComplianceFilter.objects.create(
             reversed_logic=True
         )
 
     def test_should_return_name(self):
-        """
-        Test that the name is returned
-
-        :return:
-        :rtype:
-        """
-
         self.assertTrue(self.compliance_filter.name)
 
     def test_should_return_true_when_user_is_compliant_1(self):
-        """
-        Test that the filter returns True when the user is compliant with 1 character
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 1 registered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
 
         # when/then
-        self.assertTrue(self.compliance_filter.process_filter(self.user_1))
+        self.assertTrue(self.compliance_filter.process_filter(user))
 
     def test_should_return_true_when_user_is_compliant_2(self):
-        """
-        Test that the filter returns True when the user is compliant with 2 characters
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 2 registered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        add_memberaudit_character_to_user(self.user_1, 1002)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+        CharacterFactory(user=user, is_main=False)
 
         # when/then
-        self.assertTrue(self.compliance_filter.process_filter(self.user_1))
+        self.assertTrue(self.compliance_filter.process_filter(user))
 
     def test_should_return_false_when_user_is_compliant_1_reversed(self):
-        """
-        Test that the filter returns False when the user is compliant with 1 character and reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 1 registered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
 
         # when/then
-        self.assertFalse(self.compliance_filter_reversed.process_filter(self.user_1))
+        self.assertFalse(self.compliance_filter_reversed.process_filter(user))
 
     def test_should_return_false_when_user_is_compliant_2_reversed(self):
-        """
-        Test that the filter returns False when the user is compliant with 2 characters and reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 2 registered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        add_memberaudit_character_to_user(self.user_1, 1002)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+        CharacterFactory(user=user, is_main=False)
 
         # when/then
-        self.assertFalse(self.compliance_filter_reversed.process_filter(self.user_1))
+        self.assertFalse(self.compliance_filter_reversed.process_filter(user))
 
     def test_should_return_false_when_user_is_not_compliant_1(self):
-        """
-        Test that the filter returns False when the user is not compliant with 1 character
-
-        :return:
-        :rtype:
-        """
-
-        self.assertFalse(self.compliance_filter.process_filter(self.user_1))
+        user = UserMainBasicAccessFactory()
+        self.assertFalse(self.compliance_filter.process_filter(user))
 
     def test_should_return_false_when_user_is_not_compliant_2(self):
-        """
-        Test that the filter returns False when the user is not compliant with 2 characters
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 1 registered and 1 unregistered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        add_auth_character_to_user(self.user_1, 1002)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+        add_character_to_user(user, EveCharacterFactory())
 
         # when/then
-        self.assertFalse(self.compliance_filter.process_filter(self.user_1))
+        self.assertFalse(self.compliance_filter.process_filter(user))
 
     def test_should_return_true_when_user_is_not_compliant_1_reversed(self):
-        """
-        Test that the filter returns True when the user is not compliant with 1 character and reversed logic
-
-        :return:
-        :rtype:
-        """
-
-        self.assertTrue(self.compliance_filter_reversed.process_filter(self.user_1))
+        user = UserMainBasicAccessFactory()
+        self.assertTrue(self.compliance_filter_reversed.process_filter(user))
 
     def test_should_return_true_when_user_is_not_compliant_2_reversed(self):
-        """
-        Test that the filter returns True when the user is not compliant with 2 characters and reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # given a user with 1 registered and 1 unregistered character
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        add_auth_character_to_user(self.user_1, 1002)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+        add_character_to_user(user, EveCharacterFactory())
 
         # when/then
-        self.assertTrue(self.compliance_filter_reversed.process_filter(self.user_1))
+        self.assertTrue(self.compliance_filter_reversed.process_filter(user))
+
+
+class TestComplianceFilter_AuditFilter(NoSocketsTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.compliance_filter = ComplianceFilter.objects.create()
+        cls.compliance_filter_reversed = ComplianceFilter.objects.create(
+            reversed_logic=True
+        )
 
     def test_should_return_audit_data_for_users(self):
-        """
-        Test that the audit filter returns the correct data for two users
-
-        :return:
-        :rtype:
-        """
-
         # given
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        user_2, _ = create_user_from_evecharacter_with_access(1101)
+        user_1 = UserMainBasicAccessFactory()
+        CharacterFactory(user=user_1)
+        CharacterFactory(user=user_1, is_main=False)
+        user_2 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2)
+        users = make_user_queryset(user_1, user_2)
         result = self.compliance_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 2)
-        result_user_1001 = result[self.user_1.pk]
-        self.assertTrue(result_user_1001["check"])
+        result_user_1 = result[user_1.pk]
+        self.assertTrue(result_user_1["check"])
         self.assertEqual(
-            result_user_1001["message"],
+            result_user_1["message"],
             f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
         )
-        result_user_1101 = result[user_2.pk]
-        self.assertFalse(result_user_1101["check"])
-        self.assertIn("Lex Luther", result_user_1101["message"])
+        result_user_2 = result[user_2.pk]
+        self.assertFalse(result_user_2["check"])
+        user_2_name = user_2.profile.main_character.character_name
+        self.assertIn(user_2_name, result_user_2["message"])
 
     def test_should_return_audit_data_for_users_reversed(self):
-        """
-        Test that the audit filter returns the correct data for two users with reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # given
-        add_memberaudit_character_to_user(self.user_1, 1001)
-        user_2, _ = create_user_from_evecharacter_with_access(1101)
+        user_1 = UserMainBasicAccessFactory()
+        CharacterFactory(user=user_1)
+        CharacterFactory(user=user_1, is_main=False)
+        user_2 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2)
+        users = make_user_queryset(user_1, user_2)
         result = self.compliance_filter_reversed.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 2)
 
-        result_user_1001 = result[self.user_1.pk]
-        self.assertFalse(result_user_1001["check"])
+        result_user_1 = result[user_1.pk]
+        self.assertFalse(result_user_1["check"])
         self.assertEqual(
-            result_user_1001["message"],
+            result_user_1["message"],
             f"All characters have been added to {MEMBERAUDIT_APP_NAME}",
         )
 
-        result_user_1101 = result[user_2.pk]
-        self.assertTrue(result_user_1101["check"])
-        self.assertIn("Lex Luther", result_user_1101["message"])
+        result_user_2 = result[user_2.pk]
+        self.assertTrue(result_user_2["check"])
+        user_2_name = user_2.profile.main_character.character_name
+        self.assertIn(user_2_name, result_user_2["message"])
 
     def test_should_return_audit_data_for_non_compliant_user_with_1_character(self):
-        """
-        Test that the audit filter returns the correct data for a non-compliant user with 1 character
-
-        :return:
-        :rtype:
-        """
-
         # when
-        users = make_user_queryset(self.user_1)
+        eve_character = EveCharacterFactory(character_name="Bruce Wayne")
+        user = UserMainBasicAccessFactory(main_character__character=eve_character)
+        users = make_user_queryset(user)
         result = self.compliance_filter.audit_filter(users)
 
         # then
         expected = {
-            self.user_1.pk: {
+            user.pk: {
                 "check": False,
                 "message": "Missing character: Bruce Wayne",
             },
@@ -434,20 +308,15 @@ class TestComplianceFilter(TestCase):
     def test_should_return_audit_data_for_non_compliant_user_with_1_character_reversed(
         self,
     ):
-        """
-        Test that the audit filter returns the correct data for a non-compliant user with 1 character and reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # when
-        users = make_user_queryset(self.user_1)
+        eve_character = EveCharacterFactory(character_name="Bruce Wayne")
+        user = UserMainBasicAccessFactory(main_character__character=eve_character)
+        users = make_user_queryset(user)
         result = self.compliance_filter_reversed.audit_filter(users)
 
         # then
         expected = {
-            self.user_1.pk: {
+            user.pk: {
                 "check": True,
                 "message": "Missing character: Bruce Wayne",
             },
@@ -455,23 +324,18 @@ class TestComplianceFilter(TestCase):
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_for_non_compliant_user_with_2_characters(self):
-        """
-        Test that the audit filter returns the correct data for a non-compliant user with 2 characters
-
-        :return:
-        :rtype:
-        """
-
         # given
-        add_auth_character_to_user(self.user_1, 1002)
+        eve_character_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user = UserMainBasicAccessFactory(main_character__character=eve_character_1)
+        add_character_to_user(user, EveCharacterFactory(character_name="Clark Kent"))
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(user)
         result = self.compliance_filter.audit_filter(users)
 
         # then
         expected = {
-            self.user_1.pk: {
+            user.pk: {
                 "check": False,
                 "message": "Missing characters: Bruce Wayne, Clark Kent",
             },
@@ -481,23 +345,18 @@ class TestComplianceFilter(TestCase):
     def test_should_return_audit_data_for_non_compliant_user_with_2_characters_reversed(
         self,
     ):
-        """
-        Test that the audit filter returns the correct data for a non-compliant user with 2 characters and reversed logic
-
-        :return:
-        :rtype:
-        """
-
         # given
-        add_auth_character_to_user(self.user_1, 1002)
+        eve_character_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user = UserMainBasicAccessFactory(main_character__character=eve_character_1)
+        add_character_to_user(user, EveCharacterFactory(character_name="Clark Kent"))
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(user)
         result = self.compliance_filter_reversed.audit_filter(users)
 
         # then
         expected = {
-            self.user_1.pk: {
+            user.pk: {
                 "check": True,
                 "message": "Missing characters: Bruce Wayne, Clark Kent",
             },
@@ -505,37 +364,17 @@ class TestComplianceFilter(TestCase):
         self.assertDictEqual(result, expected)
 
 
-class TestCorporationRoleFilter(TestCase):
-    """
-    Tests for the `CorporationRoleFilter` model
-    """
-
+class TestCorporationRoleFilter_ProcessFilter(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Setup for the test case
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
-
-        load_entities()
-
-        cls.character_1001 = create_memberaudit_character(1001)
-        cls.user_1 = cls.character_1001.character_ownership.user
-        cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
-        cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
+        cls.corporation = EveCorporationInfoFactory()
+        cls.user = UserMainBasicAccessFactory(
+            main_character__character=EveCharacterFactory(corporation=cls.corporation)
+        )
+        cls.character = CharacterFactory(user=cls.user)
 
     def test_should_return_name(self):
-        """
-        Test that the name is returned
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationRoleFilterFactory(corporations=[])
 
@@ -543,217 +382,162 @@ class TestCorporationRoleFilter(TestCase):
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_role(self):
-        """
-        Test that the filter returns False when the user does not have the role
-
-        :return:
-        :rtype:
-        """
-
         # given
-        my_filter = CorporationRoleFilterFactory(corporations=[self.corporation_2001])
+        my_filter = CorporationRoleFilterFactory(corporations=[self.corporation])
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_character_with_role_in_corp(self):
-        """
-        Test that the filter returns True when the user has the role
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
+            corporations=[self.corporation], role=CharacterRole.Role.DIRECTOR
         )
-        create_character_role(
-            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
-        )
+        CharacterRoleFactory(character=self.character, role=CharacterRole.Role.DIRECTOR)
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_user_role_is_not_universal(self):
-        """
-        Test that the filter returns False when the user has the role, but not in the right location
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
+            corporations=[self.corporation], role=CharacterRole.Role.DIRECTOR
         )
-        create_character_role(
-            character=self.character_1001,
+        CharacterRoleFactory(
+            character=self.character,
             role=CharacterRole.Role.DIRECTOR,
             location=CharacterRole.Location.OTHER,
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_role_is_in_wrong_corp(self):
-        """
-        Test that the filter returns False when the user has the role, but in the wrong corp
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
+            corporations=[EveCorporationInfoFactory()], role=CharacterRole.Role.DIRECTOR
         )
-        my_filter.corporations.add(self.corporation_2101)
-        create_character_role(
-            character=self.character_1001,
+        my_filter.corporations.add(EveCorporationInfoFactory())
+        CharacterRoleFactory(
+            character=self.character,
             role=CharacterRole.Role.DIRECTOR,
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_character_with_role_owned_by_other_user(self):
-        """
-        Test that the filter returns False when the user does not own the character with the role
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
+            corporations=[EveCorporationInfoFactory()], role=CharacterRole.Role.DIRECTOR
         )
-        character_1002 = create_memberaudit_character(1002)
-        character_1002.character_ownership.user
-        create_character_role(
-            character=character_1002,
-            role=CharacterRole.Role.DIRECTOR,
-        )
+        character_2 = CharacterFactory()
+        CharacterRoleFactory(character=character_2, role=CharacterRole.Role.DIRECTOR)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_with_role_is_not_main(self):
-        """
-        Test that the filter returns False when the character with the role is not the main character
-
-        :return:
-        :rtype:
-        """
-
         # given filter for mains only
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001],
+            corporations=[self.corporation],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=False,
         )
         # and character has role, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_role(
-            character=character_1002, role=CharacterRole.Role.DIRECTOR
-        )
+        character_2 = CharacterFactory(user=self.user, is_main=False)
+        CharacterRoleFactory(character=character_2, role=CharacterRole.Role.DIRECTOR)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_with_role_is_not_main_but_allowed(self):
-        """
-        Test that the filter returns True when the character with the role is not the main character, but allowed
-
-        :return:
-        :rtype:
-        """
-
-        # given filter for mains only
+        # given including alts
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001],
+            corporations=[self.corporation],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=True,
         )
+
         # and character has role, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_role(
-            character=character_1002, role=CharacterRole.Role.DIRECTOR
+        user = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(
+            user=user,
+            is_main=False,
+            alt_character=EveCharacterFactory(corporation=self.corporation),
         )
+        CharacterRoleFactory(character=character_2, role=CharacterRole.Role.DIRECTOR)
+
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(user))
 
+
+class TestCorporationRoleFilter_AuditFilters(NoSocketsTestCase):
     def test_should_return_audit_data_for_three_users_and_no_alts(self):
-        """
-        Test that the audit filter returns the correct data for three users without alts
-
-        :return:
-        :rtype:
-        """
-
         # given
+        corporation = EveCorporationInfoFactory()
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001, self.corporation_2101],
+            corporations=[corporation, EveCorporationInfoFactory()],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=False,
         )
-        create_character_role(
-            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
-        )
 
-        character_1101 = create_memberaudit_character(1101)
-        user_2 = character_1101.character_ownership.user
-        character_1102 = add_memberaudit_character_to_user(user_2, 1102)
-        create_character_role(
-            character=character_1102, role=CharacterRole.Role.DIRECTOR
+        user_1 = UserMainBasicAccessFactory(
+            main_character__character=EveCharacterFactory(corporation=corporation)
         )
+        character_1 = CharacterFactory(user=user_1)
+        CharacterRoleFactory(character=character_1, role=CharacterRole.Role.DIRECTOR)
 
-        user_3, _ = create_user_from_evecharacter_with_access(1003)
+        user_2 = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(user=user_2)
+        CharacterRoleFactory(character=character_2, role=CharacterRole.Role.DIRECTOR)
+
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2, user_3)
+        users = make_user_queryset(user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 3)
-        self.assertTrue(result[self.user_1.pk]["check"])
+        self.assertTrue(result[user_1.pk]["check"])
         self.assertFalse(result[user_2.pk]["check"])
         self.assertFalse(result[user_3.pk]["check"])
 
     def test_should_return_audit_data_for_two_users_with_alts(self):
-        """
-        Test that the audit filter returns the correct data for two users with alts
-
-        :return:
-        :rtype:
-        """
-
         # given
+        corporation_1 = EveCorporationInfoFactory()
+        corporation_2 = EveCorporationInfoFactory()
         my_filter = CorporationRoleFilterFactory(
-            corporations=[self.corporation_2001, self.corporation_2101],
+            corporations=[corporation_1, corporation_2],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=True,
         )
-        create_character_role(
-            character=self.character_1001, role=CharacterRole.Role.DIRECTOR
-        )
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_role(
-            character=character_1002, role=CharacterRole.Role.DIRECTOR
-        )
 
-        character_1101 = create_memberaudit_character(1101)
-        user_2 = character_1101.character_ownership.user
-        create_character_role(
-            character=character_1101, role=CharacterRole.Role.DIRECTOR
+        main_1 = EveCharacterFactory(
+            character_name="Bruce Wayne", corporation=corporation_1
         )
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterRoleFactory(character=character_11, role=CharacterRole.Role.DIRECTOR)
+        alt = EveCharacterFactory(
+            character_name="Clark Kent", corporation=corporation_1
+        )
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt)
+        CharacterRoleFactory(character=character_12, role=CharacterRole.Role.DIRECTOR)
 
-        user_3, _ = create_user_from_evecharacter_with_access(1102)
+        main_2 = EveCharacterFactory(
+            character_name="Lex Luther", corporation=corporation_2
+        )
+        user_2 = UserMainBasicAccessFactory(main_character__character=main_2)
+        character_2 = CharacterFactory(user=user_2)
+        CharacterRoleFactory(character=character_2, role=CharacterRole.Role.DIRECTOR)
+
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2, user_3)
+        users = make_user_queryset(user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 3)
         self.assertDictEqual(
-            result[self.user_1.id],
+            result[user_1.id],
             {"message": "Bruce Wayne, Clark Kent", "check": True},
         )
         self.assertDictEqual(
@@ -765,37 +549,16 @@ class TestCorporationRoleFilter(TestCase):
         )
 
 
-class TestCorporationTitleFilter(TestCase):
-    """
-    Tests for the `CorporationTitleFilter` model
-    """
-
+class TestCorporationTitleFilter_ProcessFilter(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Setup for the test case
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
-
-        load_entities()
-
-        cls.character_1001 = create_memberaudit_character(1001)
-        cls.user_1 = cls.character_1001.character_ownership.user
-        cls.corporation_2001 = EveCorporationInfo.objects.get(corporation_id=2001)
-        cls.corporation_2101 = EveCorporationInfo.objects.get(corporation_id=2101)
+        cls.corporation = EveCorporationInfoFactory()
+        main_1 = EveCharacterFactory(corporation=cls.corporation)
+        cls.user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        cls.character_1 = CharacterFactory(user=cls.user_1)
 
     def test_should_return_name(self):
-        """
-        Test that the name is returned
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(corporations=[])
 
@@ -803,13 +566,6 @@ class TestCorporationTitleFilter(TestCase):
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_title(self):
-        """
-        Test that the filter returns False when the user does not have the title
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(corporations=[])
 
@@ -817,18 +573,11 @@ class TestCorporationTitleFilter(TestCase):
         self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_user_has_character_with_title_in_corp(self):
-        """
-        Test that the filter returns True when the user has a character with the title in corp
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001], title="Alpha"
+            corporations=[self.corporation], title="Alpha"
         )
-        create_character_title(character=self.character_1001, name="Alpha")
+        CharacterTitleFactory(character=self.character_1, name="Alpha")
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
@@ -836,202 +585,170 @@ class TestCorporationTitleFilter(TestCase):
     def test_should_not_return_true_when_user_has_character_with_title_but_corp_not_defined(
         self,
     ):
-        """
-        Test that the filter returns True when the user has a character with the title but no corp is defined
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(corporations=[], title="Alpha")
-        create_character_title(character=self.character_1001, name="Alpha")
+        CharacterTitleFactory(character=self.character_1, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_title_is_in_wrong_corp(self):
-        """
-        Test that the filter returns False when the character with the title is in the wrong corp
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2101], title="Alpha"
+            corporations=[EveCorporationInfoFactory()], title="Alpha"
         )
-        create_character_title(character=self.character_1001, name="Alpha")
+        CharacterTitleFactory(character=self.character_1, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_character_with_title_is_owned_by_other_user(self):
-        """
-        Test that the filter returns False when the character with the title is owned by another user
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001], title="Alpha"
+            corporations=[self.corporation], title="Alpha"
         )
-        character_1002 = create_memberaudit_character(1002)
-        character_1002.character_ownership.user
-        create_character_title(character=character_1002, name="Alpha")
+        character_2 = CharacterFactory()
+        CharacterTitleFactory(character=character_2, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_false_when_character_with_title_is_not_main(self):
-        """
-        Test that the filter returns False when the character with the title is not the main character
-
-        :return:
-        :rtype:
-        """
-
         # given filter for mains only
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001], title="Alpha", include_alts=False
+            corporations=[self.corporation], title="Alpha", include_alts=False
         )
         # and owned character has title, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_title(character=character_1002, name="Alpha")
+        alt = EveCharacterFactory(corporation=self.corporation)
+        character_2 = CharacterFactory(
+            user=self.user_1, is_main=False, alt_character=alt
+        )
+        CharacterTitleFactory(character=character_2, name="Alpha")
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
 
     def test_should_return_true_when_character_with_title_is_not_main_but_allowed(self):
-        """
-        Test that the filter returns True when the character with the title is not the main character, but allowed
-
-        :return:
-        :rtype:
-        """
-
         # given filter for mains only
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001], title="Alpha", include_alts=True
+            corporations=[self.corporation], title="Alpha", include_alts=True
         )
 
         # and character has title, but is not main
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_title(character=character_1002, name="Alpha")
+        alt = EveCharacterFactory(corporation=self.corporation)
+        character_2 = CharacterFactory(
+            user=self.user_1, is_main=False, alt_character=alt
+        )
+        CharacterTitleFactory(character=character_2, name="Alpha")
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1))
 
+
+class TestCorporationTitleFilter_AuditFilter(NoSocketsTestCase):
     def test_should_return_audit_data_for_users_and_mains_only(self):
-        """
-        Test that the audit filter returns the correct data for two users with mains only
-
-        :return:
-        :rtype:
-        """
-
         # given
+        corporation = EveCorporationInfoFactory()
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001, self.corporation_2101],
+            corporations=[corporation, EveCorporationInfoFactory()],
             title="Alpha",
             include_alts=False,
         )
-        create_character_title(character=self.character_1001, name="Alpha")
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_title(character=character_1002, name="Alpha")
 
-        character_1101 = create_memberaudit_character(1101)
-        user_2 = character_1101.character_ownership.user
-        character_1102 = add_memberaudit_character_to_user(user_2, 1102)
-        create_character_title(character=character_1102, name="Alpha")
+        main_1 = EveCharacterFactory(
+            corporation=corporation, character_name="Bruce Wayne"
+        )
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_12 = CharacterFactory(user=user_1)
+        CharacterTitleFactory(character=character_12, name="Alpha")
+        alt_1 = EveCharacterFactory(corporation=corporation)
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterTitleFactory(character=character_12, name="Alpha")
 
-        user_3, _ = create_user_from_evecharacter_with_access(1104)
+        user_2 = UserMainBasicAccessFactory()
+        alt_2 = EveCharacterFactory(corporation=corporation)
+        character_2 = CharacterFactory(user=user_2, is_main=False, alt_character=alt_2)
+        CharacterTitleFactory(character=character_2, name="Alpha")
+
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2, user_3)
+        users = make_user_queryset(user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 3)
         self.assertDictEqual(
-            result[self.user_1.id], {"message": "Bruce Wayne", "check": True}
+            result[user_1.id], {"message": "Bruce Wayne", "check": True}
         )
         self.assertFalse(result[user_2.id]["check"])
         self.assertFalse(result[user_3.id]["check"])
 
     def test_should_return_audit_data_for_three_users_and_including_alts(self):
-        """
-        Test that the audit filter returns the correct data for three users with alts
-
-        :return:
-        :rtype:
-        """
-
         # given
+        corporation = EveCorporationInfoFactory()
         my_filter = CorporationTitleFilterFactory(
-            corporations=[self.corporation_2001, self.corporation_2101],
+            corporations=[corporation, EveCorporationInfoFactory()],
             title="Alpha",
             include_alts=True,
         )
-        character_1002 = add_memberaudit_character_to_user(self.user_1, 1002)
-        create_character_title(character=character_1002, name="Alpha")
 
-        character_1101 = create_memberaudit_character(1101)
-        user_2 = character_1101.character_ownership.user
-        create_character_title(character=character_1101, name="Alpha")
+        main_1 = EveCharacterFactory(
+            corporation=corporation, character_name="Bruce Wayne"
+        )
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_12 = CharacterFactory(user=user_1)
+        CharacterTitleFactory(character=character_12, name="Alpha")
+        alt_1 = EveCharacterFactory(corporation=corporation)
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterTitleFactory(character=character_12, name="Alpha")
 
-        user_3, _ = create_user_from_evecharacter_with_access(1104)
+        user_2 = UserMainBasicAccessFactory()
+        alt_2 = EveCharacterFactory(corporation=corporation)
+        character_2 = CharacterFactory(user=user_2, is_main=False, alt_character=alt_2)
+        CharacterTitleFactory(character=character_2, name="Alpha")
+
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2, user_3)
+        users = make_user_queryset(user_1, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 3)
-        self.assertTrue(result[self.user_1.id]["check"])
+        self.assertTrue(result[user_1.id]["check"])
         self.assertTrue(result[user_2.id]["check"])
         self.assertFalse(result[user_3.id]["check"])
 
 
-class TestSkillSetFilterBase(TestCase):
-    """
-    Base class for the `SkillSetFilter` tests
-    """
-
+class TestSkillSetFilterBase(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Setup for the test case
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
 
-        load_entities()
-        load_eveuniverse()
-
         # user with a main and an alt
-        cls.character_1001 = create_memberaudit_character(1001)
-        cls.user_1 = cls.character_1001.character_ownership.user
-        cls.character_1002 = add_memberaudit_character_to_user(cls.user_1, 1002)
+        main = EveCharacterFactory(character_name="Bruce Wayne")
+        cls.user = UserMainBasicAccessFactory(main_character__character=main)
+        cls.character_11 = CharacterFactory(user=cls.user)
+        alt = EveCharacterFactory(character_name="Clark Kent")
+        cls.character_12 = CharacterFactory(
+            user=cls.user, is_main=False, alt_character=alt
+        )
         # amarr carrier skill set
-        cls.amarr_carrier_skill_type = EveType.objects.get(name="Amarr Carrier")
-        cls.amarr_carrier_skill_set = create_skill_set()
-        cls.amarr_carrier_skill_set_skill = create_skill_set_skill(
+        cls.amarr_carrier_skill_type = NavigationSkillTypeFactory(name="Amarr Carrier")
+        cls.amarr_carrier_skill_set = SkillSetFactory()
+        cls.amarr_carrier_skill_set_skill = SkillSetSkillFactory(
             skill_set=cls.amarr_carrier_skill_set,
             eve_type=cls.amarr_carrier_skill_type,
             required_level=3,
             recommended_level=5,
         )
         # caldari carrier skill set
-        cls.caldari_carrier_skill_type = EveType.objects.get(name="Caldari Carrier")
-        cls.caldari_carrier_skill_set = create_skill_set()
-        cls.caldari_carrier_skill_set_skill = create_skill_set_skill(
+        cls.caldari_carrier_skill_type = NavigationSkillTypeFactory(
+            name="Caldari Carrier"
+        )
+        cls.caldari_carrier_skill_set = SkillSetFactory()
+        cls.caldari_carrier_skill_set_skill = SkillSetSkillFactory(
             skill_set=cls.caldari_carrier_skill_set,
             eve_type=cls.caldari_carrier_skill_type,
             required_level=3,
@@ -1039,19 +756,8 @@ class TestSkillSetFilterBase(TestCase):
         )
 
 
-class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
-    """
-    Tests for the `SkillSetFilter.process_filter` method
-    """
-
+class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
     def test_should_return_name(self):
-        """
-        Test that the name is returned
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
 
@@ -1059,92 +765,57 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_skill_set_check(self):
-        """
-        Test that the filter returns False when the user does not have a skill set check
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_user_did_not_pass_skill_set_check(self):
-        """
-        Test that the filter returns False when the user did not pass the skill set check
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        skill_set_check = create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        skill_set_check = CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         skill_set_check.failed_required_skills.add(self.amarr_carrier_skill_set_skill)
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_passes_skill_set(self):
-        """
-        Test that the filter returns True when the user passes the skill set check
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_passes_skill_set_except_recommended_skills(
         self,
     ):
-        """
-        Test that the filter returns True when the user passes the skill set check except for recommended skills
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        skill_set_check = create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        skill_set_check = CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         skill_set_check.failed_recommended_skills.add(
             self.amarr_carrier_skill_set_skill
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_main_but_alt_required(self):
-        """
-        Test that the filter returns False when the character is main but alt is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ALTS_ONLY
@@ -1152,20 +823,13 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_main_and_main_required(self):
-        """
-        Test that the filter returns False when the character is main but main is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
@@ -1173,20 +837,13 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_is_main_and_any_allowed(self):
-        """
-        Test that the filter returns True when the character is main and any is allowed
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ANY
@@ -1194,20 +851,13 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_alt_but_main_required(self):
-        """
-        Test that the filter returns False when the character is alt but main is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
@@ -1215,20 +865,13 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_is_alt_and_any_allowed(self):
-        """
-        Test that the filter returns True when the character is alt and any is allowed
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ANY
@@ -1236,20 +879,13 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_is_alt_and_alt_required(self):
-        """
-        Test that the filter returns True when the character is alt and alt is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ALTS_ONLY
@@ -1257,64 +893,47 @@ class TestSkillSetFilterProcessFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1))
+        self.assertTrue(my_filter.process_filter(self.user))
 
 
-class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
-    """
-    Tests for the `SkillSetFilter.audit_filter` method
-    """
-
+class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
     def test_should_return_audit_data_with_several_users(self):
-        """
-        Test that the audit filter returns the correct data for several users
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1002, skill_set=self.amarr_carrier_skill_set
-        )
-
-        character_1101 = create_memberaudit_character(1101)
-        user_2 = character_1101.character_ownership.user
-        create_character_skill_set_check(
-            character=character_1101, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
 
-        user_3, _ = create_user_from_evecharacter_with_access(1102)
+        user_2 = UserMainBasicAccessFactory()
+        character_3 = CharacterFactory(user=user_2)
+
+        CharacterSkillSetCheckFactory(
+            character=character_3, skill_set=self.amarr_carrier_skill_set
+        )
+
+        user_3 = UserMainBasicAccessFactory()
 
         # when
-        users = make_user_queryset(self.user_1, user_2, user_3)
+        users = make_user_queryset(self.user, user_2, user_3)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 3)
-        self.assertTrue(result[self.user_1.id]["check"])
+        self.assertTrue(result[self.user.id]["check"])
         self.assertTrue(result[user_2.id]["check"])
         self.assertFalse(result[user_3.id]["check"])
 
     def test_should_return_audit_data_when_character_is_main_but_alt_required(self):
-        """
-        Test that the audit filter returns the correct data when the character is main but alt is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ALTS_ONLY
@@ -1322,26 +941,19 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 1)
-        self.assertFalse(result[self.user_1.id]["check"])
+        self.assertFalse(result[self.user.id]["check"])
 
     def test_should_return_audit_data_when_character_is_main_and_main_required(self):
-        """
-        Test that the audit filter returns the correct data when the character is main and main is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
@@ -1349,26 +961,19 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
-        expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
+        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_main_and_any_allowed(self):
-        """
-        Test that the audit filter returns the correct data when the character is main and any is allowed
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ANY
@@ -1376,25 +981,18 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            character=self.character_1001, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
-        expected = {self.user_1.id: {"check": True, "message": "Bruce Wayne"}}
+        expected = {self.user.id: {"check": True, "message": "Bruce Wayne"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_alt_but_main_required(self):
-        """
-        Test that the audit filter returns the correct data when the character is alt but main is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
@@ -1402,25 +1000,18 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
         self.assertEqual(len(result), 1)
-        self.assertFalse(result[self.user_1.id]["check"])
+        self.assertFalse(result[self.user.id]["check"])
 
     def test_should_return_audit_data_when_character_is_alt_and_any_allowed(self):
-        """
-        Test that the audit filter returns the correct data when the character is alt and any is allowed
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ANY
@@ -1428,26 +1019,19 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
-        expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
+        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
 
     def test_should_return_audit_data_when_character_is_alt_and_alt_required(self):
-        """
-        Test that the audit filter returns the correct data when the character is alt and alt is required
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(
             character_type=SkillSetFilter.CharacterType.ANY
@@ -1455,68 +1039,43 @@ class TestSkillSetFilterAuditFilter(TestSkillSetFilterBase):
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
 
         # when
-        users = make_user_queryset(self.user_1)
+        users = make_user_queryset(self.user)
         result = my_filter.audit_filter(users)
 
         # then
-        expected = {self.user_1.id: {"check": True, "message": "Clark Kent"}}
+        expected = {self.user.id: {"check": True, "message": "Clark Kent"}}
         self.assertDictEqual(result, expected)
 
     def test_should_default_to_any_as_character_type(self):
-        """
-        Test that the filter defaults to ANY as the character type
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = SkillSetFilter.objects.create(character_type="")
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
-        create_character_skill_set_check(
-            self.character_1002, skill_set=self.amarr_carrier_skill_set
+        CharacterSkillSetCheckFactory(
+            character=self.character_12, skill_set=self.amarr_carrier_skill_set
         )
 
         self.assertEqual(my_filter.character_type, SkillSetFilter.CharacterType.ANY)
 
 
-class TestTimeInCorporationFilter(TestCase):
-    """
-    Tests for the `TimeInCorporationFilter` model
-    """
-
+class TestTimeInCorporationFilter_ProcessFilter(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        """
-        Set up the test case with some initial data.
-
-        :return:
-        :rtype:
-        """
-
         super().setUpClass()
-        load_entities()
-
-        cls.character = create_memberaudit_character(1002)
-        cls.user_1002 = cls.character.character_ownership.user
-        cls.corporation_2001 = EveEntity.objects.get(id=2001)
-        cls.corporation_2002 = EveEntity.objects.get(id=2002)
+        corporation = EveCorporationInfoFactory()
+        cls.user = UserMainBasicAccessFactory(
+            main_character__character=EveCharacterFactory(corporation=corporation)
+        )
+        cls.character = CharacterFactory(user=cls.user)
+        cls.corporation = EveEntityCorporationFactory(id=corporation.corporation_id)
 
     def test_should_return_name(self):
-        """
-        Test that the filter has a name.
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = TimeInCorporationFilterFactory()
 
@@ -1524,147 +1083,108 @@ class TestTimeInCorporationFilter(TestCase):
         self.assertTrue(my_filter.name)
 
     def test_should_return_true_when_main_membership_was_long_enough(self):
-        """
-        Test that the filter returns True when the main character has been in the corporation longer than the defined minimum days.
-
-        :return:
-        :rtype:
-        """
-
         # given
-        create_character_corporation_history(
+        CharacterCorporationHistoryFactory(
             character=self.character,
-            corporation=self.corporation_2001,
+            corporation=self.corporation,
             start_date=now() - dt.timedelta(days=30),
         )
         my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1002))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_main_membership_was_not_long_enough(self):
-        """
-        Test that the filter returns False when the main character has been in the corporation shorter than the defined minimum days.
-
-        :return:
-        :rtype:
-        """
-
         # given
-        create_character_corporation_history(
+        CharacterCorporationHistoryFactory(
             character=self.character,
-            corporation=self.corporation_2001,
+            corporation=self.corporation,
             start_date=now() - dt.timedelta(days=29),
         )
         my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1002))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_main_membership_was_longer_than_defined(self):
-        """
-        Test that the filter returns False when the main character has been in the corporation longer than the defined minimum days.
-
-        :return:
-        :rtype:
-        """
-
         # given
-        create_character_corporation_history(
+        CharacterCorporationHistoryFactory(
             character=self.character,
-            corporation=self.corporation_2001,
+            corporation=self.corporation,
             start_date=now() - dt.timedelta(days=30),
         )
         my_filter = TimeInCorporationFilterFactory(minimum_days=30, reversed_logic=True)
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1002))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_main_membership_was_not_long_enough(self):
-        """
-        Test that the filter returns True when the main character has been in the corporation shorter than the defined minimum days.
-
-        :return:
-        :rtype:
-        """
-
         # given
-        create_character_corporation_history(
+        CharacterCorporationHistoryFactory(
             character=self.character,
-            corporation=self.corporation_2001,
+            corporation=self.corporation,
             start_date=now() - dt.timedelta(days=29),
         )
         my_filter = TimeInCorporationFilterFactory(minimum_days=30, reversed_logic=True)
 
         # when/then
-        self.assertTrue(my_filter.process_filter(self.user_1002))
+        self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_no_membership_data_for_main(self):
-        """
-        Test that the filter returns False when there is no membership data for the main character.
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
-        self.assertFalse(my_filter.process_filter(self.user_1002))
+        self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_user_has_no_memberaudit_character(self):
-        """
-        Test that the filter returns False when the user has no memberaudit character.
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = TimeInCorporationFilterFactory(minimum_days=30)
-        user, _ = create_user_from_evecharacter_with_access(1002)
+        user = UserMainBasicAccessFactory()
 
         # when/then
         self.assertFalse(my_filter.process_filter(user))
 
+
+class TestTimeInCorporationFilter_AuditFilter(NoSocketsTestCase):
     def test_should_return_audit_data_with_one_user_passing_and_one_not_passing(self):
-        """
-        Test that the filter returns the correct audit data for two users.
-
-        :return:
-        :rtype:
-        """
-
         # given
         my_filter = TimeInCorporationFilterFactory(minimum_days=30)
-        create_character_corporation_history(
-            character=self.character,
-            corporation=self.corporation_2001,
+        eve_corporation = EveCorporationInfoFactory()
+        user_1 = UserMainBasicAccessFactory(
+            main_character__character=EveCharacterFactory(corporation=eve_corporation)
+        )
+        character_1 = CharacterFactory(user=user_1)
+        corporation = EveEntityCorporationFactory(id=eve_corporation.corporation_id)
+
+        CharacterCorporationHistoryFactory(
+            character=character_1,
+            corporation=corporation,
             start_date=now() - dt.timedelta(days=30),
         )
-        character_1101 = create_memberaudit_character(1101)
-        user_1101 = character_1101.user
-        create_character_corporation_history(
+
+        user_2 = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(user=user_2)
+
+        CharacterCorporationHistoryFactory(
             record_id=1,
-            character=character_1101,
-            corporation=self.corporation_2002,
+            character=character_2,
             start_date=now() - dt.timedelta(days=100),
         )
-        create_character_corporation_history(
+        CharacterCorporationHistoryFactory(
             record_id=2,
-            character=character_1101,
-            corporation=self.corporation_2001,
+            character=character_2,
+            corporation=corporation,
             start_date=now() - dt.timedelta(days=29),
         )
-        users = User.objects.filter(pk__in=[self.user_1002.pk, user_1101.pk])
+        users = User.objects.filter(pk__in=[user_1.pk, user_2.pk])
 
         # when
         result = my_filter.audit_filter(users)
 
         # then
         expected = {
-            self.user_1002.id: {"message": "30 days", "check": True},
-            user_1101.id: {"message": "29 days", "check": False},
+            user_1.id: {"message": "30 days", "check": True},
+            user_2.id: {"message": "29 days", "check": False},
         }
         self.assertDictEqual(dict(result), expected)
