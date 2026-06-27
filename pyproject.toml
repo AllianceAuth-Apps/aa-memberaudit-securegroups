@@ -8,7 +8,7 @@ description = "Member Audit Secure Groups integration for Alliance Auth."
 readme = "README.md"
 keywords = ["allianceauth", "memberaudit", "securegroups"]
 license = { file = "LICENSE" }
-maintainers = [{ name = "Peter Pfeufer", email = "develop@ppfeufer.de" }]
+maintainers = [{ name = "Erik Kalkoken", email = "kalkoken87@gmail.com" }]
 authors = [
     { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
     { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
@@ -27,7 +27,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
@@ -46,7 +45,7 @@ GitHub = "https://github.com/ppfeufer/aa-ma-securegroups"
 Tracker = "https://github.com/ppfeufer/aa-ma-securegroups/issues"
 
 [project.optional-dependencies]
-test = ["coverage", "django-webtest"]
+test = ["coverage", "factory_boy", "allianceauth-app-utils>=1.32"]
 
 [tool.flit.module]
 name = "memberaudit_securegroups"
