@@ -35,11 +35,10 @@ from memberaudit_securegroups.models import (
     ComplianceFilter,
     SkillSetFilter,
 )
-
-from .factories import (
-    create_corporation_role_filter,
-    create_corporation_title_filter,
-    create_time_in_corporation_filter,
+from memberaudit_securegroups.tests.factories_2 import (
+    CorporationRoleFilterFactory,
+    CorporationTitleFilterFactory,
+    TimeInCorporationFilterFactory,
 )
 
 
@@ -538,7 +537,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(corporations=[])
+        my_filter = CorporationRoleFilterFactory(corporations=[])
 
         # when/then
         self.assertTrue(my_filter.name)
@@ -552,7 +551,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(corporations=[self.corporation_2001])
+        my_filter = CorporationRoleFilterFactory(corporations=[self.corporation_2001])
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
@@ -566,7 +565,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
         )
         create_character_role(
@@ -584,7 +583,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001], role=CharacterRole.Role.DIRECTOR
         )
         create_character_role(
@@ -604,7 +603,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
         )
         my_filter.corporations.add(self.corporation_2101)
@@ -624,7 +623,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2101], role=CharacterRole.Role.DIRECTOR
         )
         character_1002 = create_memberaudit_character(1002)
@@ -645,7 +644,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given filter for mains only
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=False,
@@ -667,7 +666,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given filter for mains only
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=True,
@@ -689,7 +688,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001, self.corporation_2101],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=False,
@@ -726,7 +725,7 @@ class TestCorporationRoleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_role_filter(
+        my_filter = CorporationRoleFilterFactory(
             corporations=[self.corporation_2001, self.corporation_2101],
             role=CharacterRole.Role.DIRECTOR,
             include_alts=True,
@@ -798,7 +797,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(corporations=[])
+        my_filter = CorporationTitleFilterFactory(corporations=[])
 
         # when/then
         self.assertTrue(my_filter.name)
@@ -812,7 +811,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(corporations=[])
+        my_filter = CorporationTitleFilterFactory(corporations=[])
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1))
@@ -826,7 +825,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001], title="Alpha"
         )
         create_character_title(character=self.character_1001, name="Alpha")
@@ -845,7 +844,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(corporations=[], title="Alpha")
+        my_filter = CorporationTitleFilterFactory(corporations=[], title="Alpha")
         create_character_title(character=self.character_1001, name="Alpha")
 
         # when/then
@@ -860,7 +859,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2101], title="Alpha"
         )
         create_character_title(character=self.character_1001, name="Alpha")
@@ -877,7 +876,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001], title="Alpha"
         )
         character_1002 = create_memberaudit_character(1002)
@@ -896,7 +895,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given filter for mains only
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001], title="Alpha", include_alts=False
         )
         # and owned character has title, but is not main
@@ -915,7 +914,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given filter for mains only
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001], title="Alpha", include_alts=True
         )
 
@@ -935,7 +934,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=False,
@@ -972,7 +971,7 @@ class TestCorporationTitleFilter(TestCase):
         """
 
         # given
-        my_filter = create_corporation_title_filter(
+        my_filter = CorporationTitleFilterFactory(
             corporations=[self.corporation_2001, self.corporation_2101],
             title="Alpha",
             include_alts=True,
@@ -1519,7 +1518,7 @@ class TestTimeInCorporationFilter(TestCase):
         """
 
         # given
-        my_filter = create_time_in_corporation_filter()
+        my_filter = TimeInCorporationFilterFactory()
 
         # when/then
         self.assertTrue(my_filter.name)
@@ -1538,7 +1537,7 @@ class TestTimeInCorporationFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=30),
         )
-        my_filter = create_time_in_corporation_filter(minimum_days=30)
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1002))
@@ -1557,7 +1556,7 @@ class TestTimeInCorporationFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=29),
         )
-        my_filter = create_time_in_corporation_filter(minimum_days=30)
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1002))
@@ -1576,9 +1575,7 @@ class TestTimeInCorporationFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=30),
         )
-        my_filter = create_time_in_corporation_filter(
-            minimum_days=30, reversed_logic=True
-        )
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30, reversed_logic=True)
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1002))
@@ -1597,9 +1594,7 @@ class TestTimeInCorporationFilter(TestCase):
             corporation=self.corporation_2001,
             start_date=now() - dt.timedelta(days=29),
         )
-        my_filter = create_time_in_corporation_filter(
-            minimum_days=30, reversed_logic=True
-        )
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30, reversed_logic=True)
 
         # when/then
         self.assertTrue(my_filter.process_filter(self.user_1002))
@@ -1613,7 +1608,7 @@ class TestTimeInCorporationFilter(TestCase):
         """
 
         # given
-        my_filter = create_time_in_corporation_filter(minimum_days=30)
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30)
 
         # when/then
         self.assertFalse(my_filter.process_filter(self.user_1002))
@@ -1627,7 +1622,7 @@ class TestTimeInCorporationFilter(TestCase):
         """
 
         # given
-        my_filter = create_time_in_corporation_filter(minimum_days=30)
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30)
         user, _ = create_user_from_evecharacter_with_access(1002)
 
         # when/then
@@ -1642,7 +1637,7 @@ class TestTimeInCorporationFilter(TestCase):
         """
 
         # given
-        my_filter = create_time_in_corporation_filter(minimum_days=30)
+        my_filter = TimeInCorporationFilterFactory(minimum_days=30)
         create_character_corporation_history(
             character=self.character,
             corporation=self.corporation_2001,

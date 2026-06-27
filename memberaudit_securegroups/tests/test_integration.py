@@ -16,9 +16,9 @@ from memberaudit.tests.testdata.factories import (
 from memberaudit.tests.testdata.load_entities import load_entities
 from memberaudit.tests.utils import create_memberaudit_character
 
-from .factories import (
-    create_corporation_title_filter,
-    create_time_in_corporation_filter,
+from memberaudit_securegroups.tests.factories_2 import (
+    CorporationTitleFilterFactory,
+    TimeInCorporationFilterFactory,
 )
 
 
@@ -42,9 +42,7 @@ class TestFilters(TestCase):
         user_1002 = character_1002.character_ownership.user
         create_character_title(character=character_1001, name="Diplomat")
 
-        create_corporation_title_filter(
-            corporations=[self.corporation_2001], title="CEO"
-        )
+        CorporationTitleFilterFactory(corporations=[self.corporation_2001], title="CEO")
         smart_group = SmartGroup.objects.create(group=self.group, auto_group=True)
         title_filter = SmartFilter.objects.first()
         smart_group.filters.add(title_filter)
@@ -77,7 +75,7 @@ class TestFilters(TestCase):
             start_date=now() - dt.timedelta(days=29),
         )
 
-        create_time_in_corporation_filter(minimum_days=30)
+        TimeInCorporationFilterFactory(minimum_days=30)
         smart_group = SmartGroup.objects.create(group=self.group, auto_group=True)
         my_filter = SmartFilter.objects.first()
         smart_group.filters.add(my_filter)
