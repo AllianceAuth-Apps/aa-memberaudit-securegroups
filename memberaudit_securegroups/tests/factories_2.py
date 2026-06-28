@@ -111,7 +111,7 @@ class HomeStationFilterFactory(
     include_alts = False
 
 
-class SkillPointFilterFilterFactory(
+class SkillPointFilterFactory(
     factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[SkillPointFilter]
 ):
     class Meta:

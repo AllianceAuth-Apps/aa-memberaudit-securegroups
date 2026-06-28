@@ -10,6 +10,7 @@ from memberaudit.tests.testdata.factories_2 import (
     CharacterCloneInfoFactory,
     CharacterCorporationHistoryFactory,
     CharacterFactory,
+    CharacterSkillpointsFactory,
     CharacterSkillSetCheckFactory,
     LocationStationFactory,
     NavigationSkillTypeFactory,
@@ -19,8 +20,9 @@ from memberaudit.tests.testdata.factories_2 import (
 )
 
 from memberaudit_securegroups.models import SkillSetFilter
-from memberaudit_securegroups.tests.factories_2 import (  # SkillPointFilterFilterFactory,
+from memberaudit_securegroups.tests.factories_2 import (
     HomeStationFilterFactory,
+    SkillPointFilterFactory,
     SkillSetFilterFilterFactory,
     TimeInCorporationFilterFactory,
 )
@@ -498,6 +500,101 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilter_Base):
         )
 
         self.assertEqual(my_filter.character_type, SkillSetFilter.CharacterType.ANY)
+
+
+class TestSkillPointFilter(NoSocketsTestCase):
+    def test_should_return_name(self):
+        # given
+        my_filter = SkillPointFilterFactory()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_true_when_main_has_sufficient_skill_points(self):
+        # given
+        skill_point_threshold = 5_000_000
+        my_filter = SkillPointFilterFactory(skill_point_threshold=skill_point_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        CharacterSkillpointsFactory(
+            character=character, total=skill_point_threshold + 1
+        )
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_false_when_no_character_has_sufficient_skill_points(
+        self,
+    ):
+        # given
+        skill_point_threshold = 5_000_000
+        my_filter = SkillPointFilterFactory(skill_point_threshold=skill_point_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        CharacterSkillpointsFactory(character=character, total=1)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_false_when_character_has_no_skill_point_data(
+        self,
+    ):
+        # given
+        skill_point_threshold = 5_000_000
+        my_filter = SkillPointFilterFactory(skill_point_threshold=skill_point_threshold)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_true_when_alt_has_sufficient_skill_points(self):
+        # given
+        skill_point_threshold = 5_000_000
+        my_filter = SkillPointFilterFactory(skill_point_threshold=skill_point_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user, is_main=False)
+        CharacterSkillpointsFactory(
+            character=character, total=skill_point_threshold + 1
+        )
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_correct_audit_data_for_users(self):
+        # given
+        skill_point_threshold = 5_000_000
+        my_filter = SkillPointFilterFactory(skill_point_threshold=skill_point_threshold)
+
+        main_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterSkillpointsFactory(
+            character=character_11, total=skill_point_threshold + 1
+        )
+        alt_1 = EveCharacterFactory(character_name="Clark Kent")
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterSkillpointsFactory(
+            character=character_12, total=skill_point_threshold + 1
+        )
+
+        user_2 = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(user=user_2)
+        CharacterSkillpointsFactory(character=character_2, total=1_000_000)
+
+        user_3 = UserMainBasicAccessFactory()
+
+        # when
+        users = make_user_queryset(user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[user_1.id]["check"])
+        self.assertIn("Bruce Wayne", result[user_1.id]["message"])
+        self.assertIn("Clark Kent", result[user_1.id]["message"])
+        self.assertFalse(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
 
 class TestTimeInCorporationFilter_AuditFilter(NoSocketsTestCase):

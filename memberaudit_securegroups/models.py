@@ -655,17 +655,23 @@ class SkillPointFilter(BaseFilter):
                 skillpoints__total__gt=self.skill_point_threshold
             )
 
-            if characters.count() > 0:
-                chars = defaultdict(list)
+            if not characters.exists():
+                output[user.pk] = {
+                    "message": "No characters with sufficient skill points",
+                    "check": False,
+                }
+                continue
 
-                for char in characters:
-                    chars[char.user.pk].append(char.eve_character.character_name)
+            chars = defaultdict(list)
 
-                for char_user, char_list in chars.items():
-                    output[char_user] = {
-                        "message": ", ".join(sorted(char_list)),
-                        "check": True,
-                    }
+            for char in characters:
+                chars[char.user.pk].append(char.eve_character.character_name)
+
+            for char_user, char_list in chars.items():
+                output[char_user] = {
+                    "message": ", ".join(sorted(char_list)),
+                    "check": True,
+                }
 
         return output
 

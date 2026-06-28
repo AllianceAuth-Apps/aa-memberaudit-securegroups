@@ -158,7 +158,7 @@ class TestAgeFilter(NoSocketsTestCase):
         # when/then
         self.assertTrue(my_filter.process_filter(user))
 
-    def test_should_return_false_when_alt_has_correct_home_location_and_alts_excluded(
+    def test_should_return_false_when_main_younger_then_threshold(
         self,
     ):
         # given
