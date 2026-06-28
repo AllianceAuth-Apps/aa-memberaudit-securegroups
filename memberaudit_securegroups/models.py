@@ -144,23 +144,29 @@ class ActivityFilter(BaseFilter):
                 | Q(online_status__last_logout__gt=threshold_date),
             )
 
-            if characters.count() > 0:
-                chars = defaultdict(list)
+            if not characters.exists():
+                output[user.pk] = {
+                    "message": "No characters active within threshold",
+                    "check": False,
+                }
+                continue
 
-                for char in characters:
-                    chars[char.user.pk].append(char.eve_character.character_name)
+            chars = defaultdict(list)
 
-                for char_user, char_list in chars.items():
-                    message = ngettext(
-                        singular="Active character: ",
-                        plural="Active characters: ",
-                        number=len(char_list),
-                    )
+            for char in characters:
+                chars[char.user.pk].append(char.eve_character.character_name)
 
-                    output[char_user] = {
-                        "message": message + ", ".join(sorted(char_list)),
-                        "check": True,
-                    }
+            for char_user, char_list in chars.items():
+                message = ngettext(
+                    singular="Active character: ",
+                    plural="Active characters: ",
+                    number=len(char_list),
+                )
+
+                output[char_user] = {
+                    "message": message + ", ".join(sorted(char_list)),
+                    "check": True,
+                }
 
         return output
 

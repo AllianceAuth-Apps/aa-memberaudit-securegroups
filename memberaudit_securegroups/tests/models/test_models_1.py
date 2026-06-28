@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import NamedTuple
 
 from django.utils.timezone import now
 from eveuniverse.tests.testdata.factories_2 import EveTypeFactory
@@ -11,6 +12,7 @@ from memberaudit.tests.testdata.factories_2 import (
     CharacterAssetFactory,
     CharacterDetailsFactory,
     CharacterFactory,
+    CharacterOnlineStatusFactory,
     CharacterRoleFactory,
     CharacterTitleFactory,
     UserMainBasicAccessFactory,
@@ -18,11 +20,119 @@ from memberaudit.tests.testdata.factories_2 import (
 
 from memberaudit_securegroups.models import AssetFilter, ComplianceFilter
 from memberaudit_securegroups.tests.factories_2 import (
+    ActivityFilterFactory,
     AgeFilterFactory,
     CorporationRoleFilterFactory,
     CorporationTitleFilterFactory,
 )
 from memberaudit_securegroups.tests.helpers import make_user_queryset
+
+
+class TestActivityFilter(NoSocketsTestCase):
+    def test_should_return_name(self):
+        # given
+        my_filter = ActivityFilterFactory()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_true_when_last_login_within_threshold(self):
+        # given
+        inactivity_threshold = 5
+        my_filter = ActivityFilterFactory(inactivity_threshold=inactivity_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+
+        class Case(NamedTuple):
+            name: str
+            last_login: dt.datetime
+            last_logout: dt.datetime
+            want: bool
+
+        cases = [
+            Case(
+                name="login and logout after threshold",
+                last_login=now() - dt.timedelta(minutes=30),
+                last_logout=now() - dt.timedelta(minutes=5),
+                want=True,
+            ),
+            Case(
+                name="login before threshold, logout after threshold",
+                last_login=now() - dt.timedelta(days=inactivity_threshold, minutes=30),
+                last_logout=now() - dt.timedelta(minutes=5),
+                want=True,
+            ),
+            Case(
+                name="logout before threshold",
+                last_login=now() - dt.timedelta(days=inactivity_threshold, minutes=30),
+                last_logout=now() - dt.timedelta(days=inactivity_threshold, minutes=5),
+                want=False,
+            ),
+        ]
+        for tc in cases:
+            with self.subTest(name=tc.name):
+                status = CharacterOnlineStatusFactory(
+                    character=character,
+                    last_login=tc.last_login,
+                    last_logout=tc.last_logout,
+                )
+
+                # when/then
+                self.assertEqual(my_filter.process_filter(user), tc.want)
+                status.delete()
+
+    def test_should_return_false_when_no_online_data(self):
+        # given
+        inactivity_threshold = 5
+        my_filter = ActivityFilterFactory(inactivity_threshold=inactivity_threshold)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_correct_audit_data_for_users(self):
+        # given
+        inactivity_threshold = 5
+        my_filter = ActivityFilterFactory(inactivity_threshold=inactivity_threshold)
+
+        main_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterOnlineStatusFactory(
+            character=character_11,
+            last_login=now() - dt.timedelta(minutes=30),
+            last_logout=now() - dt.timedelta(minutes=5),
+        )
+        alt_1 = EveCharacterFactory(character_name="Clark Kent")
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterOnlineStatusFactory(
+            character=character_12,
+            last_login=now() - dt.timedelta(minutes=30),
+            last_logout=now() - dt.timedelta(minutes=5),
+        )
+
+        user_2 = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(user=user_2)
+        CharacterOnlineStatusFactory(
+            character=character_2,
+            last_login=now() - dt.timedelta(days=inactivity_threshold, minutes=30),
+            last_logout=now() - dt.timedelta(days=inactivity_threshold, minutes=5),
+        )
+
+        user_3 = UserMainBasicAccessFactory()
+
+        # when
+        users = make_user_queryset(user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[user_1.id]["check"])
+        self.assertIn("Bruce Wayne", result[user_1.id]["message"])
+        self.assertIn("Clark Kent", result[user_1.id]["message"])
+        self.assertFalse(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
 
 class TestAgeFilter(NoSocketsTestCase):

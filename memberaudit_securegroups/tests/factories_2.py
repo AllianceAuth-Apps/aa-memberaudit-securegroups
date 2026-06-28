@@ -7,6 +7,7 @@ from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories_2 import LocationStationFactory
 
 from memberaudit_securegroups.models import (
+    ActivityFilter,
     AgeFilter,
     CorporationRoleFilter,
     CorporationTitleFilter,
@@ -20,6 +21,15 @@ T = TypeVar("T")
 class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
     def __call__(cls, *args, **kwargs) -> T:
         return super().__call__(*args, **kwargs)
+
+
+class ActivityFilterFactory(
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[ActivityFilter]
+):
+    class Meta:
+        model = ActivityFilter
+
+    inactivity_threshold = factory.fuzzy.FuzzyInteger(1, 90)
 
 
 class AgeFilterFactory(
