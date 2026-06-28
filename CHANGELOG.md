@@ -19,6 +19,7 @@ This release is a modernization effort. It adds support for Alliance Auth V5 and
 ### Fixed
 
 - HomeStationFilter not working correctly
+- AltFilter not returning audit data for non-matching users
 
 ## [1.6.1] - 2025-11-04
 

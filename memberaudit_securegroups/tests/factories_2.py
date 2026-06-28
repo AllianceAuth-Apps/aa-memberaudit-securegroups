@@ -1,11 +1,13 @@
 from typing import Generic, TypeVar
 
 import factory
+import factory.fuzzy
 
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories_2 import LocationStationFactory
 
 from memberaudit_securegroups.models import (
+    AgeFilter,
     CorporationRoleFilter,
     CorporationTitleFilter,
     HomeStationFilter,
@@ -18,6 +20,15 @@ T = TypeVar("T")
 class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
     def __call__(cls, *args, **kwargs) -> T:
         return super().__call__(*args, **kwargs)
+
+
+class AgeFilterFactory(
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[AgeFilter]
+):
+    class Meta:
+        model = AgeFilter
+
+    age_threshold = factory.fuzzy.FuzzyInteger(1, 90)
 
 
 class CorporationRoleFilterFactory(

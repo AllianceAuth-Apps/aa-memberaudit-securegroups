@@ -1,3 +1,6 @@
+import datetime as dt
+
+from django.utils.timezone import now
 from eveuniverse.tests.testdata.factories_2 import EveTypeFactory
 
 from app_utils.testdata_factories import EveCharacterFactory, EveCorporationInfoFactory
@@ -6,6 +9,7 @@ from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import CharacterRole
 from memberaudit.tests.testdata.factories_2 import (
     CharacterAssetFactory,
+    CharacterDetailsFactory,
     CharacterFactory,
     CharacterRoleFactory,
     CharacterTitleFactory,
@@ -14,10 +18,84 @@ from memberaudit.tests.testdata.factories_2 import (
 
 from memberaudit_securegroups.models import AssetFilter, ComplianceFilter
 from memberaudit_securegroups.tests.factories_2 import (
+    AgeFilterFactory,
     CorporationRoleFilterFactory,
     CorporationTitleFilterFactory,
 )
 from memberaudit_securegroups.tests.helpers import make_user_queryset
+
+
+class TestAgeFilter(NoSocketsTestCase):
+    def test_should_return_name(self):
+        # given
+        my_filter = AgeFilterFactory()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_true_when_main_older_then_threshold(self):
+        # given
+        age_threshold = 5
+        my_filter = AgeFilterFactory(age_threshold=age_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        CharacterDetailsFactory(
+            character=character,
+            birthday=now() - dt.timedelta(days=age_threshold, seconds=1),
+        )
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_false_when_alt_has_correct_home_location_and_alts_excluded(
+        self,
+    ):
+        # given
+        age_threshold = 5
+        my_filter = AgeFilterFactory(age_threshold=age_threshold)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        CharacterDetailsFactory(character=character, birthday=now())
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_correct_audit_data_for_users(self):
+        # given
+        age_threshold = 5
+        my_filter = AgeFilterFactory(age_threshold=age_threshold)
+
+        main_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterDetailsFactory(
+            character=character_11,
+            birthday=now() - dt.timedelta(days=age_threshold, seconds=1),
+        )
+        alt_1 = EveCharacterFactory(character_name="Clark Kent")
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterDetailsFactory(
+            character=character_12,
+            birthday=now() - dt.timedelta(days=age_threshold, seconds=1),
+        )
+
+        user_2 = UserMainBasicAccessFactory()
+        character_2 = CharacterFactory(user=user_2)
+        CharacterDetailsFactory(character=character_2, birthday=now())
+
+        user_3 = UserMainBasicAccessFactory()
+
+        # when
+        users = make_user_queryset(user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[user_1.id]["check"])
+        self.assertIn("Bruce Wayne", result[user_1.id]["message"])
+        self.assertIn("Clark Kent", result[user_1.id]["message"])
+        self.assertFalse(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
 
 class TestAssetFilter_ProcessFilter(NoSocketsTestCase):

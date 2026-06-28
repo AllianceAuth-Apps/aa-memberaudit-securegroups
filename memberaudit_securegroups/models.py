@@ -8,7 +8,7 @@ import humanize
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import F, OuterRef, Q, Subquery
+from django.db.models import F, OuterRef, Q, QuerySet, Subquery
 from django.utils.formats import localize
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -47,7 +47,7 @@ def _get_threshold_date(timedelta_in_days: int) -> datetime.datetime:
 
 
 class BaseFilter(models.Model):
-    """BaseFilter"""
+    """The base model for all filters."""
 
     description = models.CharField(
         max_length=500,
@@ -77,7 +77,7 @@ class BaseFilter(models.Model):
 
         raise NotImplementedError("Must be defined")
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         """Return information for each given user weather they pass the filter,
         and a help message shown in the audit feature.
 
@@ -131,7 +131,7 @@ class ActivityFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         threshold_date = _get_threshold_date(
             timedelta_in_days=self.inactivity_threshold
         )
@@ -198,27 +198,33 @@ class AgeFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         threshold_date = _get_threshold_date(timedelta_in_days=self.age_threshold)
 
         output = defaultdict(lambda: {"message": "", "check": False})
 
         for user in users:
-            characters = Character.objects.owned_by_user(user=user).filter(
-                details__birthday__lt=threshold_date
-            )
+            characters: QuerySet[Character] = Character.objects.owned_by_user(
+                user=user
+            ).filter(details__birthday__lt=threshold_date)
 
-            if characters.count() > 0:
-                chars = defaultdict(list)
+            if not characters.exists():
+                output[user.pk] = {
+                    "message": "No characters are old enough",
+                    "check": False,
+                }
+                continue
 
-                for char in characters:
-                    chars[char.user.pk].append(char.eve_character.character_name)
+            chars = defaultdict(list)
 
-                for char_user, char_list in chars.items():
-                    output[char_user] = {
-                        "message": ", ".join(sorted(char_list)),
-                        "check": True,
-                    }
+            for char in characters:
+                chars[char.user.pk].append(char.eve_character.character_name)
+
+            for char_user, char_list in chars.items():
+                output[char_user] = {
+                    "message": ", ".join(sorted(char_list)),
+                    "check": True,
+                }
 
         return output
 
@@ -245,7 +251,7 @@ class AssetFilter(BaseFilter):
             eve_type__in=self.assets.all(),
         ).exists()
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         matching_assets = CharacterAsset.objects.filter(
             character=OuterRef("pk"), eve_type__in=list(self.assets.all())
         )
@@ -322,7 +328,7 @@ class ComplianceFilter(BaseFilter):
 
         return not unregistered_characters.exists()
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         unregistered_characters = EveCharacter.objects.filter(
             character_ownership__user__in=list(users),
             memberaudit_character__isnull=True,
@@ -411,7 +417,7 @@ class CorporationRoleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -493,7 +499,7 @@ class CorporationTitleFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         qs = Character.objects.filter(
             eve_character__character_ownership__user__in=list(users),
             eve_character__corporation_id__in=self._corporation_ids(),
@@ -532,6 +538,74 @@ class CorporationTitleFilter(BaseFilter):
         return list(self.corporations.values_list("corporation_id", flat=True))
 
 
+class HomeStationFilter(BaseFilter):
+    """Filter for home station."""
+
+    home_station = models.ForeignKey(
+        to=Location,
+        related_name="home_station_filter",
+        on_delete=models.CASCADE,
+        help_text=_("User must have a character with this home station."),
+    )
+    include_alts = models.BooleanField(
+        default=False,
+        help_text=_(
+            "When True, the filter will also include the users alt-characters."
+        ),
+    )
+
+    class Meta:
+        verbose_name = _("Smart Filter: Home Station (Death Clone)")
+        verbose_name_plural = verbose_name
+
+    @property
+    def name(self) -> str:
+        return str(_("Member Audit Home Station"))
+
+    def process_filter(self, user: User) -> bool:
+        qs = CharacterCloneInfo.objects.filter(
+            character__eve_character__character_ownership__user=user,
+            home_location=self.home_station,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        return qs.exists()
+
+    def audit_filter(self, users: QuerySet[User]) -> dict:
+        qs = CharacterCloneInfo.objects.filter(
+            character__eve_character__character_ownership__user__in=list(users),
+            home_location=self.home_station,
+        )
+
+        if not self.include_alts:
+            qs = qs.filter(character__eve_character__userprofile__isnull=False)
+
+        matching_characters = qs.values(
+            user_id=F("character__eve_character__character_ownership__user_id"),
+            character_name=F("character__eve_character__character_name"),
+        )
+
+        user_with_characters = defaultdict(list)
+        for character in matching_characters:
+            character_name = character["character_name"]
+            user_with_characters[character["user_id"]].append(f"{character_name}")
+
+        output = {
+            user_id: {"message": _("No matching character found"), "check": False}
+            for user_id in users.values_list("id", flat=True)
+        }
+
+        for user_id, character_names in user_with_characters.items():
+            output[user_id] = {
+                "message": ", ".join(sorted(character_names)),
+                "check": True,
+            }
+
+        return output
+
+
 class SkillPointFilter(BaseFilter):
     """SkillPointFilter"""
 
@@ -567,7 +641,7 @@ class SkillPointFilter(BaseFilter):
             > 0
         )
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         output = defaultdict(lambda: {"message": "", "check": False})
 
         for user in users:
@@ -644,7 +718,7 @@ class SkillSetFilter(BaseFilter):
 
         return qs.exists()
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         qs = Character.objects.filter(
             skill_set_checks__skill_set__in=list(self.skill_sets.all()),
             skill_set_checks__failed_required_skills__isnull=True,
@@ -729,7 +803,7 @@ class TimeInCorporationFilter(BaseFilter):
 
         return passes
 
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
+    def audit_filter(self, users: QuerySet[User]) -> dict:
         current_membership = (
             CharacterCorporationHistory.objects.filter(
                 character=OuterRef("profile__main_character__memberaudit_character__pk")
@@ -774,73 +848,5 @@ class TimeInCorporationFilter(BaseFilter):
                 )
 
             output[user.id] = {"message": msg, "check": check}
-
-        return output
-
-
-class HomeStationFilter(BaseFilter):
-    """Filter for home station."""
-
-    home_station = models.ForeignKey(
-        to=Location,
-        related_name="home_station_filter",
-        on_delete=models.CASCADE,
-        help_text=_("User must have a character with this home station."),
-    )
-    include_alts = models.BooleanField(
-        default=False,
-        help_text=_(
-            "When True, the filter will also include the users alt-characters."
-        ),
-    )
-
-    class Meta:
-        verbose_name = _("Smart Filter: Home Station (Death Clone)")
-        verbose_name_plural = verbose_name
-
-    @property
-    def name(self) -> str:
-        return str(_("Member Audit Home Station"))
-
-    def process_filter(self, user: User) -> bool:
-        qs = CharacterCloneInfo.objects.filter(
-            character__eve_character__character_ownership__user=user,
-            home_location=self.home_station,
-        )
-
-        if not self.include_alts:
-            qs = qs.filter(character__eve_character__userprofile__isnull=False)
-
-        return qs.exists()
-
-    def audit_filter(self, users: models.QuerySet[User]) -> dict:
-        qs = CharacterCloneInfo.objects.filter(
-            character__eve_character__character_ownership__user__in=list(users),
-            home_location=self.home_station,
-        )
-
-        if not self.include_alts:
-            qs = qs.filter(character__eve_character__userprofile__isnull=False)
-
-        matching_characters = qs.values(
-            user_id=F("character__eve_character__character_ownership__user_id"),
-            character_name=F("character__eve_character__character_name"),
-        )
-
-        user_with_characters = defaultdict(list)
-        for character in matching_characters:
-            character_name = character["character_name"]
-            user_with_characters[character["user_id"]].append(f"{character_name}")
-
-        output = {
-            user_id: {"message": _("No matching character found"), "check": False}
-            for user_id in users.values_list("id", flat=True)
-        }
-
-        for user_id, character_names in user_with_characters.items():
-            output[user_id] = {
-                "message": ", ".join(sorted(character_names)),
-                "check": True,
-            }
 
         return output
