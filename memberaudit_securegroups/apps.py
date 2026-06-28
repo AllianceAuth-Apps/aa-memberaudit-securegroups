@@ -1,6 +1,4 @@
-"""
-App's base definitions
-"""
+"""App's base definitions"""
 
 from django.apps import AppConfig
 from django.utils.text import format_lazy
@@ -9,10 +7,6 @@ from memberaudit_securegroups import __title_translated__, __version__
 
 
 class MemberAuditSecureGroupsConfig(AppConfig):
-    """
-    MemberAuditSecureGroupsConfig
-    """
-
     name = "memberaudit_securegroups"
     label = "memberaudit_securegroups"
     verbose_name = format_lazy(

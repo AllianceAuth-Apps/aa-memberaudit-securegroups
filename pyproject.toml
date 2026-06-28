@@ -76,4 +76,4 @@ good-names = ["i", "j", "k", "ex"]
 max-line-length = 120
 
 [tool.pylint.'MESSAGES CONTROL']
-disable = ["imported-auth-user", "too-many-lines", "too-many-ancestors"]
+disable = ["imported-auth-user", "too-many-ancestors"]

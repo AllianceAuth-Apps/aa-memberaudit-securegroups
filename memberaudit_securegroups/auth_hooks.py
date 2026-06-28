@@ -1,6 +1,4 @@
-"""
-Hook into Alliance Auth
-"""
+"""Hook into Alliance Auth"""
 
 from allianceauth import hooks
 
@@ -20,12 +18,7 @@ from memberaudit_securegroups.models import (
 
 @hooks.register("secure_group_filters")
 def filters() -> list:
-    """
-    Secure group filter
-
-    :return: Secure group filters
-    :rtype: list
-    """
+    """Return list of secure group filters."""
 
     return [
         ActivityFilter,

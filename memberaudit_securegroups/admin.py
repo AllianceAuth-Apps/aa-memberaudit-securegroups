@@ -1,6 +1,4 @@
-"""
-Admin pages
-"""
+"""Admin pages"""
 
 from typing import Any
 
@@ -30,23 +28,12 @@ from memberaudit_securegroups.models import (
 
 @admin.register(ActivityFilter)
 class ActivityFilterAdmin(admin.ModelAdmin):
-    """
-    ActivityFilterAdmin
-    """
+    """ActivityFilterAdmin"""
 
     list_display = ("description", "_inactivity_threshold")
 
     @admin.display(description=_("Inactivity threshold"))
     def _inactivity_threshold(self, obj) -> str:
-        """
-        Get the inactivity threshold
-
-        :param obj: The object
-        :type obj: ActivityFilter
-        :return: The inactivity threshold
-        :rtype: str
-        """
-
         inactivity_threshold = obj.inactivity_threshold
 
         return_value = ngettext(
@@ -60,91 +47,53 @@ class ActivityFilterAdmin(admin.ModelAdmin):
 
 @admin.register(AgeFilter)
 class AgeFilterAdmin(admin.ModelAdmin):
-    """
-    AgeFilterAdmin
-    """
+    """AgeFilterAdmin"""
 
     list_display = ("description", "_age_threshold")
 
     def _age_threshold(self, obj) -> str:
-        """
-        Get the age threshold
-
-        :param obj: The object
-        :type obj: AgeFilter
-        :return: The age threshold
-        :rtype: str
-        """
-
         return f"{obj.age_threshold:d} days"
 
 
 @admin.register(AssetFilter)
 class AssetFilterAdmin(admin.ModelAdmin):
-    """
-    AssetFilterAdmin
-    """
+    """AssetFilterAdmin"""
 
     list_display = ("description", "_assets")
     autocomplete_fields = ["assets"]
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        """
-        Get the queryset
-
-        :param request: The request
-        :type request: HttpRequest
-        :return: The queryset
-        :rtype: QuerySet
-        """
-
         qs = super().get_queryset(request)
-
         return qs.prefetch_related("assets")
 
     @admin.display()
     def _assets(self, obj) -> str:
-        """
-        Get assets
-
-        :param obj: The object
-        :type obj: AssetFilter
-        :return: The assets
-        :rtype: str
-        """
-
         objs = obj.assets.all()
-
         return ", ".join(sorted([obj.name for obj in objs]))
 
 
 @admin.register(ComplianceFilter)
 class ComplianceFilterAdmin(admin.ModelAdmin):
-    """
-    ComplianceFilterAdmin
-    """
+    """ComplianceFilterAdmin"""
 
     list_display = ("description", "reversed_logic")
 
 
 class CorporationRoleListFilter(admin.SimpleListFilter):
-    """
-    CorporationRoleListFilter
-    """
+    """CorporationRoleListFilter"""
 
     title = _("corporation role")
     parameter_name = "corporation_role"
 
     def lookups(self, request, model_admin) -> list:
-        """
-        Return lookups with used roles only.
+        """Return lookups with used roles only.
 
-        :param request: The request
-        :type request: HttpRequest
-        :param model_admin: The model admin
-        :type model_admin: admin.ModelAdmin
-        :return: The lookups
-        :rtype: list
+        Args:
+            request (HttpRequest): The request
+            model_admin (admin.ModelAdmin): The model admin
+
+        Returns:
+            list: The lookups
         """
 
         roles = set(model_admin.get_queryset(request).values_list("role", flat=True))
@@ -155,15 +104,14 @@ class CorporationRoleListFilter(admin.SimpleListFilter):
     def queryset(
         self, request, queryset  # pylint: disable=unused-argument
     ) -> QuerySet | None:
-        """
-        Return queryset for a selected role.
+        """Return queryset for a selected role.
 
-        :param request: The request
-        :type request: HttpRequest
-        :param queryset: The queryset
-        :type queryset: QuerySet
-        :return: The queryset
-        :rtype: QuerySet
+        Args:
+            request (HttpRequest): The request
+            queryset (QuerySet): The queryset
+
+        Returns:
+            QuerySet: The queryset
         """
 
         if value := self.value():
@@ -174,9 +122,7 @@ class CorporationRoleListFilter(admin.SimpleListFilter):
 
 @admin.register(CorporationRoleFilter)
 class CorporationRoleFilterAdmin(admin.ModelAdmin):
-    """
-    CorporationRoleFilterAdmin
-    """
+    """CorporationRoleFilterAdmin"""
 
     list_display = ("description", "role", "_corporations")
     list_filter = (CorporationRoleListFilter,)
@@ -184,165 +130,73 @@ class CorporationRoleFilterAdmin(admin.ModelAdmin):
     fields = ("description", "role", "corporations", "include_alts")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        """
-        Get the queryset
-
-        :param request: The request
-        :type request: HttpRequest
-        :return: The queryset
-        :rtype: QuerySet
-        """
-
         qs = super().get_queryset(request)
-
         return qs.prefetch_related("corporations")
 
     @admin.display()
     def _corporations(self, obj) -> str:
-        """
-        Get corporations
-
-        :param obj: The object
-        :type obj: CorporationRoleFilter
-        :return: The corporations
-        :rtype: str
-        """
-
         objs = obj.corporations.all()
-
         return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
 @admin.register(CorporationTitleFilter)
 class CorporationTitleFilterAdmin(admin.ModelAdmin):
-    """
-    CorporationTitleFilterAdmin
-    """
+    """CorporationTitleFilterAdmin"""
 
     list_display = ("description", "title", "_corporations")
     filter_horizontal = ("corporations",)
     fields = ("description", "title", "corporations", "include_alts")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        """
-        Get the queryset
-
-        :param request: The request
-        :type request: HttpRequest
-        :return: The queryset
-        :rtype: QuerySet
-        """
-
         qs = super().get_queryset(request)
-
         return qs.prefetch_related("corporations")
 
     @admin.display()
     def _corporations(self, obj) -> str:
-        """
-        Get corporations
-
-        :param obj: The object
-        :type obj: CorporationTitleFilter
-        :return: The corporations
-        :rtype: str
-        """
-
         objs = obj.corporations.all()
-
         return ", ".join(sorted([obj.corporation_name for obj in objs]))
 
 
 @admin.register(SkillPointFilter)
 class SkillPointFilterAdmin(admin.ModelAdmin):
-    """
-    SkillPointFilterAdmin
-    """
+    """SkillPointFilterAdmin"""
 
     list_display = ("description", "_skill_point_threshold")
 
     def _skill_point_threshold(self, obj) -> str:
-        """
-        Get the skill point threshold
-
-        :param obj: The object
-        :type obj: SkillPointFilter
-        :return: The skill point threshold
-        :rtype:
-        """
-
         skillpoints = humanize.intword(obj.skill_point_threshold)
-
         return f"{skillpoints} skill points"
 
 
 @admin.register(SkillSetFilter)
 class SkillSetFilterAdmin(admin.ModelAdmin):
-    """
-    SkillSetFilterAdmin
-    """
+    """SkillSetFilterAdmin"""
 
     list_display = ("description", "_skill_sets", "character_type")
     filter_horizontal = ("skill_sets",)
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        """
-        Get the queryset
-
-        :param request: The request
-        :type request: HttpRequest
-        :return: The queryset
-        :rtype: QuerySet
-        """
-
         qs = super().get_queryset(request)
-
         return qs.prefetch_related("skill_sets")
 
     @admin.display()
     def _skill_sets(self, obj) -> str:
-        """
-        Get skill sets
-
-        :param obj: The object
-        :type obj: SkillSetFilter
-        :return: The skill sets
-        :rtype: str
-        """
-
         objs = obj.skill_sets.all()
-
         return ", ".join(sorted([obj.name for obj in objs]))
 
 
 @admin.register(TimeInCorporationFilter)
 class TimeInCorporationFilterAdmin(admin.ModelAdmin):
-    """
-    TimeInCorporationFilterAdmin
-    """
+    """TimeInCorporationFilterAdmin"""
 
     list_display = ("description", "minimum_days")
 
 
 @admin.register(HomeStationFilter)
 class HomeStationFilterAdmin(admin.ModelAdmin):
-    """
-    HomeStationFilterAdmin
-    """
+    """HomeStationFilterAdmin"""
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """
-        Override the form field for foreign key
-
-        :param db_field: The database field
-        :type db_field: ForeignKey
-        :param request: The request
-        :type request: HttpRequest
-        :param kwargs: Additional keyword arguments
-        :return: The form field
-        :rtype: ForeignKey
-        """
-
         # Remove anything that is not a station from the queryset
         if db_field.name == "home_station":
             kwargs["queryset"] = Location.objects.filter(

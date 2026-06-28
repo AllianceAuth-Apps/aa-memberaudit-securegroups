@@ -1,6 +1,4 @@
-"""
-Wrapper for checks in AA Member Audit
-"""
+"""Wrapper for checks in AA Member Audit"""
 
 from django.contrib.auth.models import User
 
@@ -9,19 +7,17 @@ from memberaudit.models import General
 
 
 class MemberAuditChecks:  # pylint: disable=too-few-public-methods
-    """
-    Member Audit Checks
-    """
+    """Member Audit Checks"""
 
     @staticmethod
     def compliance(user: User) -> dict:
-        """
-        Check user compliance with AA Member Audit and return probably missing characters
+        """Check user compliance with AA Member Audit and return probably missing characters
 
-        :param user: The user
-        :type user: User
-        :return: Compliance information
-        :rtype: dict
+        Args:
+            user (User): The user
+
+        Returns:
+            dict: Compliance information
         """
 
         is_compliant = General.compliant_users().filter(pk=user.pk).exists()
