@@ -1,18 +1,18 @@
 from typing import Generic, TypeVar
 
 import factory
-import factory.fuzzy
 
 from memberaudit.models import CharacterRole
+from memberaudit.tests.testdata.factories_2 import LocationStationFactory
 
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,
+    HomeStationFilter,
     TimeInCorporationFilter,
 )
 
 T = TypeVar("T")
-_BASE_URL = "https://esi.evetech.net/"
 
 
 class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
@@ -21,8 +21,7 @@ class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
 
 
 class CorporationRoleFilterFactory(
-    factory.django.DjangoModelFactory,
-    metaclass=BaseMetaFactory[CorporationRoleFilter],
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[CorporationRoleFilter]
 ):
     class Meta:
         model = CorporationRoleFilter
@@ -62,3 +61,13 @@ class TimeInCorporationFilterFactory(
         model = TimeInCorporationFilter
 
     minimum_days = 30
+
+
+class HomeStationFilterFactory(
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[HomeStationFilter]
+):
+    class Meta:
+        model = HomeStationFilter
+
+    home_station = factory.SubFactory(LocationStationFactory)
+    include_alts = False

@@ -7,9 +7,11 @@ from eveuniverse.tests.testdata.factories_2 import EveEntityCorporationFactory
 from app_utils.testdata_factories import EveCharacterFactory, EveCorporationInfoFactory
 from app_utils.testing import NoSocketsTestCase
 from memberaudit.tests.testdata.factories_2 import (
+    CharacterCloneInfoFactory,
     CharacterCorporationHistoryFactory,
     CharacterFactory,
     CharacterSkillSetCheckFactory,
+    LocationStationFactory,
     NavigationSkillTypeFactory,
     SkillSetFactory,
     SkillSetSkillFactory,
@@ -17,8 +19,156 @@ from memberaudit.tests.testdata.factories_2 import (
 )
 
 from memberaudit_securegroups.models import SkillSetFilter
-from memberaudit_securegroups.tests.factories_2 import TimeInCorporationFilterFactory
+from memberaudit_securegroups.tests.factories_2 import (
+    HomeStationFilterFactory,
+    TimeInCorporationFilterFactory,
+)
 from memberaudit_securegroups.tests.helpers import make_user_queryset
+
+
+class TestHomeStationFilter_ProcessFilter(NoSocketsTestCase):
+    def test_should_return_name(self):
+        # given
+        my_filter = HomeStationFilterFactory()
+
+        # when/then
+        self.assertTrue(my_filter.name)
+
+    def test_should_return_true_when_main_has_correct_home_location(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        CharacterCloneInfoFactory(character=character, home_location=location_1)
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_false_when_alt_has_correct_home_location_and_alts_excluded(
+        self,
+    ):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(
+            home_station=location_1, include_alts=False
+        )
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user, is_main=False)
+        CharacterCloneInfoFactory(character=character, home_location=location_1)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_true_when_alt_has_correct_home_location_and_alts_included(
+        self,
+    ):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1, include_alts=True)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user, is_main=False)
+        CharacterCloneInfoFactory(character=character, home_location=location_1)
+
+        # when/then
+        self.assertTrue(my_filter.process_filter(user))
+
+    def test_should_return_false_when_main_has_different_home_location(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1)
+        user = UserMainBasicAccessFactory()
+        character = CharacterFactory(user=user)
+        location_2 = LocationStationFactory()
+        CharacterCloneInfoFactory(character=character, home_location=location_2)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_false_when_main_no_home_location_info(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1)
+        user = UserMainBasicAccessFactory()
+        CharacterFactory(user=user)
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+    def test_should_return_false_when_user_no_memberaudit_character(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1)
+        user = UserMainBasicAccessFactory()
+
+        # when/then
+        self.assertFalse(my_filter.process_filter(user))
+
+
+class TestHomeStationFilter_AuditFilter(NoSocketsTestCase):
+    def test_should_return_audit_data_for_users_and_mains_only(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(
+            home_station=location_1, include_alts=False
+        )
+
+        main_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterCloneInfoFactory(character=character_11, home_location=location_1)
+        alt_1 = EveCharacterFactory()
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterCloneInfoFactory(character=character_12, home_location=location_1)
+
+        user_2 = UserMainBasicAccessFactory()
+        alt_2 = EveCharacterFactory()
+        character_2 = CharacterFactory(user=user_2, is_main=False, alt_character=alt_2)
+        CharacterCloneInfoFactory(character=character_2, home_location=location_1)
+
+        user_3 = UserMainBasicAccessFactory()
+
+        # when
+        users = make_user_queryset(user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertDictEqual(
+            result[user_1.id], {"message": "Bruce Wayne", "check": True}
+        )
+        self.assertFalse(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
+
+    def test_should_return_audit_data_for_three_users_and_including_alts(self):
+        # given
+        location_1 = LocationStationFactory()
+        my_filter = HomeStationFilterFactory(home_station=location_1, include_alts=True)
+
+        main_1 = EveCharacterFactory(character_name="Bruce Wayne")
+        user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
+        character_11 = CharacterFactory(user=user_1)
+        CharacterCloneInfoFactory(character=character_11, home_location=location_1)
+        alt_1 = EveCharacterFactory()
+        character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
+        CharacterCloneInfoFactory(character=character_12, home_location=location_1)
+
+        user_2 = UserMainBasicAccessFactory()
+        alt_2 = EveCharacterFactory()
+        character_2 = CharacterFactory(user=user_2, is_main=False, alt_character=alt_2)
+        CharacterCloneInfoFactory(character=character_2, home_location=location_1)
+
+        user_3 = UserMainBasicAccessFactory()
+
+        # when
+        users = make_user_queryset(user_1, user_2, user_3)
+        result = my_filter.audit_filter(users)
+
+        # then
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[user_1.id]["check"])
+        self.assertTrue(result[user_2.id]["check"])
+        self.assertFalse(result[user_3.id]["check"])
 
 
 class TestSkillSetFilterBase(NoSocketsTestCase):

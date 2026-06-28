@@ -20,8 +20,8 @@ from memberaudit.app_settings import MEMBERAUDIT_APP_NAME
 from memberaudit.models import (
     Character,
     CharacterAsset,
+    CharacterCloneInfo,
     CharacterCorporationHistory,
-    CharacterLocation,
     CharacterRole,
     CharacterSkillSetCheck,
     CharacterTitle,
@@ -803,9 +803,9 @@ class HomeStationFilter(BaseFilter):
         return str(_("Member Audit Home Station"))
 
     def process_filter(self, user: User) -> bool:
-        qs = CharacterLocation.objects.filter(
+        qs = CharacterCloneInfo.objects.filter(
             character__eve_character__character_ownership__user=user,
-            location=self.home_station,
+            home_location=self.home_station,
         )
 
         if not self.include_alts:
@@ -814,9 +814,9 @@ class HomeStationFilter(BaseFilter):
         return qs.exists()
 
     def audit_filter(self, users: models.QuerySet[User]) -> dict:
-        qs = CharacterLocation.objects.filter(
+        qs = CharacterCloneInfo.objects.filter(
             character__eve_character__character_ownership__user__in=list(users),
-            location=self.home_station,
+            home_location=self.home_station,
         )
 
         if not self.include_alts:

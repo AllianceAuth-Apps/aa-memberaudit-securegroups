@@ -637,8 +637,8 @@ class TestCorporationTitleFilter_AuditFilter(NoSocketsTestCase):
             corporation=corporation, character_name="Bruce Wayne"
         )
         user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
-        character_12 = CharacterFactory(user=user_1)
-        CharacterTitleFactory(character=character_12, name="Alpha")
+        character_11 = CharacterFactory(user=user_1)
+        CharacterTitleFactory(character=character_11, name="Alpha")
         alt_1 = EveCharacterFactory(corporation=corporation)
         character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
         CharacterTitleFactory(character=character_12, name="Alpha")
@@ -675,8 +675,8 @@ class TestCorporationTitleFilter_AuditFilter(NoSocketsTestCase):
             corporation=corporation, character_name="Bruce Wayne"
         )
         user_1 = UserMainBasicAccessFactory(main_character__character=main_1)
-        character_12 = CharacterFactory(user=user_1)
-        CharacterTitleFactory(character=character_12, name="Alpha")
+        character_11 = CharacterFactory(user=user_1)
+        CharacterTitleFactory(character=character_11, name="Alpha")
         alt_1 = EveCharacterFactory(corporation=corporation)
         character_12 = CharacterFactory(user=user_1, is_main=False, alt_character=alt_1)
         CharacterTitleFactory(character=character_12, name="Alpha")

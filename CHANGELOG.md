@@ -16,6 +16,10 @@ This release is a modernization effort. It adds support for Alliance Auth V5 and
 - Added support for AAv5
 - Removed dead module `memberaudit.py`
 
+### Fixed
+
+- HomeStationFilter not working correctly
+
 ## [1.6.1] - 2025-11-04
 
 ### Fixed
