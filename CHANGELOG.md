@@ -5,44 +5,135 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## \[In Development\]
+## [In Development]
 
-## \[1.1.0\] - 2024-10-10
+## [2.0.0] - TBD
 
-> \[!IMPORTANT\]
->
-> **This will be the last release in this repository.**\
-> The project has been moved to [GitHub](https://github.com/ppfeufer/aa-ma-securegroups) and will be maintained there.\
-> Please read the [migration guide](https://github.com/ppfeufer/aa-ma-securegroups#step-05-migrating-from-member-audit-securegroups) for more information.
+This release is a modernization effort. It adds support for Alliance Auth V5 and contains breaking changes.
+
+### Changed
+
+- Added support for AAv5
+- Removed dead module `memberaudit.py`
+
+## [1.6.1] - 2025-11-04
+
+### Fixed
+
+- Django `makemessages` seems to be ignoring f-strings now
+
+### Changed
+
+- Translations updated
+
+## [1.6.0] - 2025-08-05
+
+### Added
+
+- Home Station (Death Clone) smart filter
+
+### Changed
+
+- Translations updated
+
+## [1.5.2] - 2025-06-03
+
+### Changed
+
+- Translations updated
+
+## [1.5.1] - 2025-05-05
+
+### Changed
+
+- Translations updated
+
+## [1.5.0] - 2025-01-06
+
+### Added
+
+- End date to the `TimeInCorporationFilter` for reverse logic
+
+### Changed
+
+- Filter messages made translatable
+
+## [1.4.0] - 2024-12-31
+
+### Added
+
+- Checkbox to reverse logic for `TimeInCorporationFilter`, which comes in handy
+  when you want to put characters that are not in the corporation for a
+  certain amount of time in a group, like for a probation period.
+
+## [1.3.1] - 2024-12-14
+
+### Added
+
+- Python 3.13 to the test matrix
+
+### Changed
+
+- Simplify code for `ComplianceFilter.audit_filter` logic
+- Translations updated
+
+## [1.3.0] - 2024-12-06
+
+### Added
+
+- Proper filter names
+- Reversed logic to compliance filter (optional)
+- Testing for Python 3.13
+
+### Changed
+
+- Several code improvements
+
+## [1.2.0] - 2024-10-10
 
 ### Changed
 
 - Dependencies updated
   - `allianceauth`>=4.3.1
   - `aa-memberaudit`>=3.10.0
-- Translations improved
+- Japanese translation improved
 - Lingua codes updated to match Alliance Auth v4.3.1
 
-## \[1.0.1\] - 2024-05-16
+## [1.1.0] - 2024-07-27
+
+### Added
+
+- Prepared Czech translation for when Alliance Auth supports it
+
+### Changed
+
+- French translation improved
+- Russian translation improved
+
+### Removed
+
+- Support for Python 3.8 and Python 3.9
+
+## [1.0.1] - 2024-05-16
 
 ### Changed
 
 - Translations updated
 
-## \[1.0.0\] - 2024-03-16
+## [1.0.0] - 2024-03-16
 
 ### Added
 
 - Corp title filter (Thanks to @ErikKalkoken)
 - Time in corp filter (Thanks to @ErikKalkoken)
 
-## \[0.6.1\] - 2023-10-22
+## [0.6.1] - 2023-10-22
 
 ### Fixed
 
 - Smart Group failed to process when filter requirements are not met
 
-## \[0.6.0\] - 2023-10-19
+## [0.6.0] - 2023-10-19
 
 ### Added
 
@@ -64,13 +155,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - aa-memberaudit>=3.3.1
 - Translations updated
 
-## \[0.5.0\] - 2023-09-02
+## [0.5.0] - 2023-09-02
 
 ### Added
 
 - Korean translation
 
-## \[0.4.0\] - 2023-08-15
+## [0.4.0] - 2023-08-15
 
 ### Added
 
@@ -82,7 +173,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Moved the build process to PEP 621 / pyproject.toml
 - Character names sorted alphabetically in all filters
 
-## \[0.3.0\] - 2023-05-31
+## [0.3.0] - 2023-05-31
 
 ### Fixed
 
@@ -95,13 +186,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - `allianceauth>=3.0.0`
   - `allianceauth-securegroups>=0.5.1`
 
-## \[0.2.0\] - 2023-02-27
+## [0.2.0] - 2023-02-27
 
 ### Added
 
 - Secure Group's audit filter to the filters for better visual feedback
 
-## \[0.1.0\] - 2022-08-06
+## [0.1.0] - 2022-08-06
 
 ### Fixed
 
@@ -125,13 +216,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Unused files
 
-## \[0.1.0a3\] - 2021-01-16
+## [0.1.0a3] - 2021-01-16
 
 ### Fixed
 
 - Bug involving skillpoint filter
 
-## \[0.1.0a2\] - 2021-01-05
+## [0.1.0a2] - 2021-01-05
 
 ### Added
 
@@ -143,7 +234,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Improved Admin Panel
 
-## \[0.1.0a1\] - 2021-01-05
+## [0.1.0a1] - 2021-01-05
 
 ### Added
 

@@ -75,7 +75,7 @@ class BaseFilter(models.Model):
             Report whether the filter applies to the user.
         """
 
-        raise NotImplementedError(_("Please create a filter!"))
+        raise NotImplementedError("Must be defined")
 
     def audit_filter(self, users: models.QuerySet[User]) -> dict:
         """Return information for each given user weather they pass the filter,
@@ -88,7 +88,7 @@ class BaseFilter(models.Model):
             The audit information
         """
 
-        raise NotImplementedError(_("Please create an audit function!"))
+        raise NotImplementedError("Must be defined")
 
 
 class ActivityFilter(BaseFilter):

@@ -748,12 +748,6 @@ class TestSkillSetFilterBase(NoSocketsTestCase):
             name="Caldari Carrier"
         )
         cls.caldari_carrier_skill_set = SkillSetFactory()
-        cls.caldari_carrier_skill_set_skill = SkillSetSkillFactory(
-            skill_set=cls.caldari_carrier_skill_set,
-            eve_type=cls.caldari_carrier_skill_type,
-            required_level=3,
-            recommended_level=5,
-        )
 
 
 class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
