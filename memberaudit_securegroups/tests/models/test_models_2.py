@@ -19,8 +19,9 @@ from memberaudit.tests.testdata.factories_2 import (
 )
 
 from memberaudit_securegroups.models import SkillSetFilter
-from memberaudit_securegroups.tests.factories_2 import (
+from memberaudit_securegroups.tests.factories_2 import (  # SkillPointFilterFilterFactory,
     HomeStationFilterFactory,
+    SkillSetFilterFilterFactory,
     TimeInCorporationFilterFactory,
 )
 from memberaudit_securegroups.tests.helpers import make_user_queryset
@@ -171,7 +172,7 @@ class TestHomeStationFilter_AuditFilter(NoSocketsTestCase):
         self.assertFalse(result[user_3.id]["check"])
 
 
-class TestSkillSetFilterBase(NoSocketsTestCase):
+class TestSkillSetFilter_Base(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -200,45 +201,45 @@ class TestSkillSetFilterBase(NoSocketsTestCase):
         cls.caldari_carrier_skill_set = SkillSetFactory()
 
 
-class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
+class TestSkillSetFilter_ProcessFilter(TestSkillSetFilter_Base):
     def test_should_return_name(self):
         # given
-        my_filter = SkillSetFilter.objects.create()
+        my_filter = SkillSetFilterFilterFactory()
 
         # when/then
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_skill_set_check(self):
         # given
-        my_filter = SkillSetFilter.objects.create()
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set]
         )
+
         # when/then
         self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_user_did_not_pass_skill_set_check(self):
         # given
-        my_filter = SkillSetFilter.objects.create()
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set]
         )
         skill_set_check = CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
         skill_set_check.failed_required_skills.add(self.amarr_carrier_skill_set_skill)
+
         # when/then
         self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_passes_skill_set(self):
         # given
-        my_filter = SkillSetFilter.objects.create()
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set]
         )
         CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
@@ -246,9 +247,8 @@ class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
         self,
     ):
         # given
-        my_filter = SkillSetFilter.objects.create()
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set]
         )
         skill_set_check = CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
@@ -256,58 +256,54 @@ class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
         skill_set_check.failed_recommended_skills.add(
             self.amarr_carrier_skill_set_skill
         )
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_main_but_alt_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.ALTS_ONLY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.ALTS_ONLY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
+
         # when/then
         self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_main_and_main_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_character_is_main_and_any_allowed(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.ANY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.ANY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_11, skill_set=self.amarr_carrier_skill_set
         )
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_false_when_character_is_alt_but_main_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.MAINS_ONLY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.MAINS_ONLY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_12, skill_set=self.amarr_carrier_skill_set
@@ -317,11 +313,9 @@ class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
 
     def test_should_return_true_when_character_is_alt_and_any_allowed(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.ANY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.ANY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_12, skill_set=self.amarr_carrier_skill_set
@@ -331,11 +325,9 @@ class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
 
     def test_should_return_true_when_character_is_alt_and_alt_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
-            character_type=SkillSetFilter.CharacterType.ALTS_ONLY
-        )
-        my_filter.skill_sets.add(
-            self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
+        my_filter = SkillSetFilterFilterFactory(
+            character_type=SkillSetFilter.CharacterType.ALTS_ONLY,
+            skill_sets=[self.amarr_carrier_skill_set, self.caldari_carrier_skill_set],
         )
         CharacterSkillSetCheckFactory(
             character=self.character_12, skill_set=self.amarr_carrier_skill_set
@@ -344,10 +336,10 @@ class TestSkillSetFilter_ProcessFilter(TestSkillSetFilterBase):
         self.assertTrue(my_filter.process_filter(self.user))
 
 
-class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
+class TestSkillSetFilter_AuditFilter(TestSkillSetFilter_Base):
     def test_should_return_audit_data_with_several_users(self):
         # given
-        my_filter = SkillSetFilter.objects.create()
+        my_filter = SkillSetFilterFilterFactory()
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )
@@ -379,7 +371,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_main_but_alt_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.ALTS_ONLY
         )
         my_filter.skill_sets.add(
@@ -399,7 +391,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_main_and_main_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
         )
         my_filter.skill_sets.add(
@@ -419,7 +411,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_main_and_any_allowed(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.ANY
         )
         my_filter.skill_sets.add(
@@ -438,7 +430,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_alt_but_main_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.MAINS_ONLY
         )
         my_filter.skill_sets.add(
@@ -457,7 +449,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_alt_and_any_allowed(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.ANY
         )
         my_filter.skill_sets.add(
@@ -477,7 +469,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_return_audit_data_when_character_is_alt_and_alt_required(self):
         # given
-        my_filter = SkillSetFilter.objects.create(
+        my_filter = SkillSetFilterFilterFactory(
             character_type=SkillSetFilter.CharacterType.ANY
         )
         my_filter.skill_sets.add(
@@ -497,7 +489,7 @@ class TestSkillSetFilter_AuditFilter(TestSkillSetFilterBase):
 
     def test_should_default_to_any_as_character_type(self):
         # given
-        my_filter = SkillSetFilter.objects.create(character_type="")
+        my_filter = SkillSetFilterFilterFactory(character_type="")
         my_filter.skill_sets.add(
             self.amarr_carrier_skill_set, self.caldari_carrier_skill_set
         )

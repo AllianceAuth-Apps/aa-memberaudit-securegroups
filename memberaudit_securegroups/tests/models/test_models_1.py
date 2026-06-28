@@ -18,10 +18,11 @@ from memberaudit.tests.testdata.factories_2 import (
     UserMainBasicAccessFactory,
 )
 
-from memberaudit_securegroups.models import AssetFilter, ComplianceFilter
 from memberaudit_securegroups.tests.factories_2 import (
     ActivityFilterFactory,
     AgeFilterFactory,
+    AssetFilterFactory,
+    ComplianceFilterFactory,
     CorporationRoleFilterFactory,
     CorporationTitleFilterFactory,
 )
@@ -218,37 +219,37 @@ class TestAssetFilter_ProcessFilter(NoSocketsTestCase):
 
     def test_should_return_name(self):
         # given
-        my_filter = AssetFilter.objects.create()
+        my_filter = AssetFilterFactory()
 
         # when/then
         self.assertTrue(my_filter.name)
 
     def test_should_return_false_when_user_does_not_have_asset(self):
         # given
-        my_filter = AssetFilter.objects.create()
         eve_type_1 = EveTypeFactory()
-        my_filter.assets.add(eve_type_1)
-        type_2 = EveTypeFactory()
-        CharacterAssetFactory(character=self.character, eve_type=type_2)
+        my_filter = AssetFilterFactory(assets=[eve_type_1])
+        eve_type_2 = EveTypeFactory()
+        CharacterAssetFactory(character=self.character, eve_type=eve_type_2)
+
         # when/then
         self.assertFalse(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_asset(self):
         # given
-        my_filter = AssetFilter.objects.create()
         eve_type = EveTypeFactory()
-        my_filter.assets.add(eve_type)
+        my_filter = AssetFilterFactory(assets=[eve_type])
         CharacterAssetFactory(character=self.character, eve_type=eve_type)
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
     def test_should_return_true_when_user_has_at_least_one_asset(self):
         # given
-        my_filter = AssetFilter.objects.create()
         eve_type_1 = EveTypeFactory()
         eve_type_2 = EveTypeFactory()
-        my_filter.assets.add(eve_type_1, eve_type_2)
+        my_filter = AssetFilterFactory(assets=[eve_type_1, eve_type_2])
         CharacterAssetFactory(character=self.character, eve_type=eve_type_1)
+
         # when/then
         self.assertTrue(my_filter.process_filter(self.user))
 
@@ -263,7 +264,7 @@ class TestAssetFilter_AuditFilters(NoSocketsTestCase):
 
     def test_should_return_audit_data_for_one_matching_one_not_matching_user(self):
         # given a filter for Merlins
-        my_filter = AssetFilter.objects.create()
+        my_filter = AssetFilterFactory()
         eve_type = EveTypeFactory(name="Merlin")
         my_filter.assets.add(eve_type)
 
@@ -309,7 +310,7 @@ class TestAssetFilter_AuditFilters(NoSocketsTestCase):
 
     def test_should_return_audit_data_when_no_matches(self):
         # given
-        my_filter = AssetFilter.objects.create()
+        my_filter = AssetFilterFactory()
 
         # when
         users = make_user_queryset(self.user)
@@ -327,10 +328,8 @@ class TestComplianceFilter_ProcessFiler(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.compliance_filter = ComplianceFilter.objects.create()
-        cls.compliance_filter_reversed = ComplianceFilter.objects.create(
-            reversed_logic=True
-        )
+        cls.compliance_filter = ComplianceFilterFactory()
+        cls.compliance_filter_reversed = ComplianceFilterFactory(reversed_logic=True)
 
     def test_should_return_name(self):
         self.assertTrue(self.compliance_filter.name)
@@ -400,10 +399,8 @@ class TestComplianceFilter_AuditFilter(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.compliance_filter = ComplianceFilter.objects.create()
-        cls.compliance_filter_reversed = ComplianceFilter.objects.create(
-            reversed_logic=True
-        )
+        cls.compliance_filter = ComplianceFilterFactory()
+        cls.compliance_filter_reversed = ComplianceFilterFactory(reversed_logic=True)
 
     def test_should_return_audit_data_for_users(self):
         # given
