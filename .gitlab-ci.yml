@@ -44,14 +44,6 @@ test:
     - tox -e py3$PYTHON_VERSION-django$DJANGO_VERSION
     - bash <(curl -s https://codecov.io/bash)
 
-test-docs:
-    stage: test
-    image: python:3.12-bookworm
-    before_script:
-        - pip install tox
-    script:
-        - tox -e docs
-
 deploy-pypi:
     stage: deploy
     image: python:3.12-bookworm

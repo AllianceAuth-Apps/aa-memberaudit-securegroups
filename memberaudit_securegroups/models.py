@@ -73,7 +73,7 @@ class BaseFilter(models.Model):
         :rtype: str
         """
 
-        return f"{self.name}: {self.description}"
+        return f"{self.name}: {self.description}"  # pylint: disable=E1101
 
     def process_filter(self, user: User) -> bool:
         """
@@ -864,28 +864,7 @@ class SkillSetFilter(BaseFilter):
         verbose_name = _("Smart Filter: Skill Set")
         verbose_name_plural = verbose_name
 
-    def save(
-        self,
-        force_insert=False,  # pylint: disable=unused-argument
-        force_update=False,  # pylint: disable=unused-argument
-        using=None,  # pylint: disable=unused-argument
-        update_fields=None,  # pylint: disable=unused-argument
-    ):
-        """
-        Save the model instance.
-
-        :param force_insert: Force insert
-        :type force_insert: bool
-        :param force_update: Force update
-        :type force_update: bool
-        :param using: Using
-        :type using: str
-        :param update_fields: Update fields
-        :type update_fields: list
-        :return: None
-        :rtype: None
-        """
-
+    def save(self, *args, **kwargs):
         # Make sure a character_type is set
         if self.character_type == "":
             self.character_type = self.CharacterType.ANY

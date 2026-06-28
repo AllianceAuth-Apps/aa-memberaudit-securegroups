@@ -4,7 +4,6 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "aa-memberaudit-securegroups"
-description = "Member Audit Secure Groups integration for Alliance Auth."
 readme = "README.md"
 keywords = ["allianceauth", "memberaudit", "securegroups"]
 license = { file = "LICENSE" }
@@ -30,7 +29,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
-dynamic = ["version"]
+dynamic = ["version", "description"]
 dependencies = [
     "aa-memberaudit>=5.0.2",
     "allianceauth>=5,<6",
@@ -77,14 +76,4 @@ good-names = ["i", "j", "k", "ex"]
 max-line-length = 120
 
 [tool.pylint.'MESSAGES CONTROL']
-disable = [
-    "cyclic-import",
-    "fixme",
-    "import-outside-toplevel",
-    "imported-auth-user",
-    "too-few-public-methods",
-    "too-many-instance-attributes",
-    "too-many-locals",
-    "too-many-branches",
-    "too-many-statements",
-]
+disable = ["imported-auth-user", "too-many-lines", "too-many-ancestors"]
