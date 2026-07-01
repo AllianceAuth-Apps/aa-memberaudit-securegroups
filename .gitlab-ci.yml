@@ -48,9 +48,8 @@ deploy-pypi:
     stage: deploy
     image: python:3.12-bookworm
     before_script:
-        - pip install -U pip twine wheel build
+        - pip install -U pip flit
     script:
-        - python -m build
-        - twine upload dist/*
+        - flit publish
     only:
         - tags
