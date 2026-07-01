@@ -9,11 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [2.0.0] - TBD
 
-This release adds support for Alliance Auth V5 and contains breaking changes and fixes.
+This release adds support for Alliance Auth V5, contains breaking changes and fixes.
 
-### Update notes
-
-If you are updating from an existing [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups) installation, please follow the update instructions in the README: **Updating from aa-ma-securegroups**
+Please note that this release is the official successor of the abandoned project [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups) and is designed to seamlessly replace it.
+If you are updating from an existing installation of the abandoned project, please follow the update instructions in the README: **Updating from aa-ma-securegroups**
 
 ### Changed
 

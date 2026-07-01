@@ -21,7 +21,7 @@ An Alliance Auth app that enables secure group management with Member Audit.
 - [Changelog](#changelog)
 
 > **Important**<br>
-> This project is the official successor of [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups).
+> This project is the official successor of the abandoned project [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups).
 > For instructions on how to update from an existing aa-ma-securegroups installation please see [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
 
 ## Features
@@ -49,7 +49,7 @@ This chapter explains how to install Member Audit Secure Groups (MASG).
 
 2. MASG needs the app [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) to function. Please make sure it is installed, before continuing.
 
-3. MASG needs the app [Secure Groups](https://gitlab.com/ErikKalkoken/django-eveuniverse) to function. Please make sure it is installed, before continuing.
+3. MASG needs the app [Secure Groups](https://github.com/Solar-Helix-Independent-Transport/allianceauth-secure-groups) to function. Please make sure it is installed, before continuing.
 
 ### Step 2: Install the app
 
@@ -74,20 +74,37 @@ python manage.py collectstatic --noinput
 
 Restart your supervisor services for Auth.
 
-Member Audit Secure Groups is now fully installed.
-To configure filters please proceed to the admin site.
+Member Audit Secure Groups is now fully installed and you can setup your first secure groups.
+
+### Step 5: Setup secure groups (Optional)
+
+You can configure your secure groups on the admin site.
+
+First create an Alliance Auth group that you want to become your smart group.
+
+Next create a Member Audit filter. You can find all available filters under "Secure Groups (Member Audit Integration)".
+
+Finally create a smart group for that filter. You can find smart groups under "Secure Groups / Smart Groups".
+
+For more details on how to setup and configure secure groups please also see [Secure Groups](https://github.com/Solar-Helix-Independent-Transport/allianceauth-secure-groups).
 
 ## Updating from aa-ma-securegroups
 
-Here is how you can update from an existing aa-ma-securegroups installation:
+MASG is designed to seamlessly replace the abandoned aa-ma-securegroups project.
+To update from an existing aa-ma-securegroups installation follow these steps:
 
 ### Step 1: Uninstall the old Python package
+
+Make sure you are in the virtual environment (venv) of your Alliance Auth installation.
+Then uninstall the old Python package:
 
 ```sh
 pip uninstall aa-ma-securegroups
 ```
 
 ### Step 2: Install the new Python package
+
+And install the new Python package:
 
 ```sh
 pip uninstall aa-memberaudit-securegroups
