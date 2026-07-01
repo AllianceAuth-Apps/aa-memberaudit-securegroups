@@ -1,13 +1,10 @@
-# Standard Library
 from collections.abc import Iterable
 
-# Alliance Auth
-from allianceauth.eveonline.models import EveCorporationInfo
+from typing_extensions import deprecated
 
-# Member Audit
+from allianceauth.eveonline.models import EveCorporationInfo
 from memberaudit.models import CharacterRole
 
-# Memberaudit Securegroups
 from memberaudit_securegroups.models import (
     CorporationRoleFilter,
     CorporationTitleFilter,
@@ -15,6 +12,7 @@ from memberaudit_securegroups.models import (
 )
 
 
+@deprecated("Replaced by CorporationRoleFilterFactory")
 def create_corporation_role_filter(
     corporations: Iterable[EveCorporationInfo], **kwargs
 ) -> CorporationRoleFilter:
@@ -26,6 +24,7 @@ def create_corporation_role_filter(
     return obj
 
 
+@deprecated("Replaced by CorporationTitleFilterFactory")
 def create_corporation_title_filter(
     corporations: Iterable[EveCorporationInfo], **kwargs
 ) -> CorporationTitleFilter:
@@ -37,6 +36,7 @@ def create_corporation_title_filter(
     return obj
 
 
+@deprecated("Replaced by TimeInCorporationFilterFactory")
 def create_time_in_corporation_filter(
     **kwargs,
 ) -> TimeInCorporationFilter:

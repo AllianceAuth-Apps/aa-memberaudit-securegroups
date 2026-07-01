@@ -1,106 +1,56 @@
 stages:
-  - pre-commit
-  - review
-  - test
-  - deploy
-
-before_script:
-  - apt-get update
-  - apt-get install redis-server -y
-  - redis-server --daemonize yes
-  - python -V
-  - pip install tox
+    - checks
+    - test
+    - deploy
 
 pre-commit:
-  stage: review
-  image: python:3.10-bullseye
-  variables:
-    PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
-  cache:
-    paths:
-      - ${PRE_COMMIT_HOME}
+    stage: checks
+    image: python:3.12-bookworm
+    variables:
+        PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+    cache:
+        paths:
+            - ${PRE_COMMIT_HOME}
+    before_script:
+        - pip install pre-commit
+    script:
+        - pre-commit run --all-files
+
+.tox_setup:
+    stage: test
+    before_script:
+        - apt-get update
+        - apt-get install redis-server -y
+        - redis-server --daemonize yes
+        - python -V
+        - pip install tox
+
+pylint:
+    stage: checks
+    extends: .tox_setup
+    image: python:3.12-bookworm
+    script:
+        - tox -e pylint
+    allow_failure: true
+
+test:
+  extends: .tox_setup
+  image: python:3.$PYTHON_VERSION-bookworm
+  parallel:
+    matrix:
+    - PYTHON_VERSION: [10, 11, 12]
+      DJANGO_VERSION: [42, 52]
   script:
-    - pip install pre-commit
-    - pre-commit run --all-files
-
-.test-py38:
-  needs: [pre-commit]
-  stage: test
-  image: python:3.8-buster
-
-.test-py39:
-  needs: [pre-commit]
-  stage: test
-  image: python:3.9-buster
-
-.test-py310:
-  needs: [pre-commit]
-  stage: test
-  image: python:3.10-buster
-
-.test-py311:
-  needs: [pre-commit]
-  stage: test
-  image: python:3.11-buster
-
-test-38-django40:
-  extends: .test-py38
-  script:
-    - tox -e py38-django40
-
-test-39-django40:
-  extends: .test-py39
-  script:
-    - tox -e py39-django40
-
-test-310-django40:
-  extends: .test-py310
-  script:
-    - tox -e py310-django40
+    - tox -e py3$PYTHON_VERSION-django$DJANGO_VERSION
     - bash <(curl -s https://codecov.io/bash)
 
-test-311-django40:
-  extends: .test-py311
-  script:
-    - tox -e py311-django40
-
-test-311-django42:
-  extends: .test-py311
-  script:
-    - tox -e py311-django42
-
-build-test:
-  needs: [test-38-django40, test-39-django40, test-310-django40, test-311-django40, test-311-django42]
-  stage: test
-  image: python:3.10-bullseye
-
-  before_script:
-    - python -m pip install --upgrade pip
-    - python -m pip install --upgrade build
-    - python -m pip install --upgrade setuptools wheel
-
-  script:
-    - python -m build
-
-  artifacts:
-    when: always
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    paths:
-      - dist/*
-    expire_in: 1 year
-
 deploy-pypi:
-  stage: deploy
-  image: python:3.10-bullseye
-
-  before_script:
-    - python -m pip install --upgrade pip
-    - python -m pip install --upgrade build
-    - python -m pip install --upgrade setuptools wheel twine
-
-  script:
-    - python -m build
-    - python -m twine upload dist/*
-
-  only:
-    - tags
+    stage: deploy
+    image: python:3.12-bookworm
+    before_script:
+        - pip install -U pip twine wheel build
+    script:
+        - python -m build
+        - twine upload dist/*
+    only:
+        - tags

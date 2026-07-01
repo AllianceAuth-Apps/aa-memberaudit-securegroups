@@ -1,77 +1,60 @@
-# Makefile for Alliance Auth Member Audit Secure Groups
+# This makefile provides tools for developers.
+#
+# Note that it requires you to have a .env file defined with the path to your manage.py file
+# The syntax is: MANAGE_PY_PATH = /path/to/manage.py
 
-# Variables
+-include .env
+export
+
 appname = aa-memberaudit-securegroups
-appname_verbose = AA Member Audit Secure Groups
 package = memberaudit_securegroups
 
-# Default goal
-.DEFAULT_GOAL := help
-
-# Help
 help:
-	@echo "$(appname_verbose) Makefile"
-	@echo ""
-	@echo "Usage: make [command]"
-	@echo ""
-	@echo "Commands:"
-	@echo "  build_test          Build the package"
-	@echo "  coverage            Run tests and create a coverage report"
-	@echo "  graph_models        Create a graph of the models"
-	@echo "  pre-commit-checks   Run pre-commit checks"
-	@echo "  tox_tests           Run tests with tox"
-	@echo "  translationfiles    Create or update translation files"
+	@echo "Makefile for $(appname)"
+	@echo "Manage path is $(MANAGE_PY_PATH)"
 
-# Translation files
-translationfiles:
-	#cd $(package); \
+makemessages:
+	cd $(package) && \
 	django-admin makemessages \
-		-l cs \
 		-l de \
+		-l en \
 		-l es \
 		-l fr_FR \
 		-l it_IT \
 		-l ja \
 		-l ko_KR \
-		-l nl \
-		-l pl_PL \
 		-l ru \
-		-l sk \
 		-l uk \
 		-l zh_Hans \
 		--keep-pot \
 		--ignore 'build/*'
 
-# Graph models
-graph_models:
-	python ../myauth/manage.py \
-		graph_models \
-		$(package) \
-		--arrow-shape normal \
-		-o $(appname)-models.png
+tx_push:
+	tx push --source
 
-# Coverage
+tx_pull:
+	tx pull -f
+
+compilemessages:
+	cd $(package) && \
+	django-admin compilemessages \
+		-l de \
+		-l en \
+		-l es \
+		-l fr_FR \
+		-l it_IT \
+		-l ja \
+		-l ko_KR \
+		-l ru \
+		-l uk \
+		-l zh_Hans
+
 coverage:
-	rm -rfv htmlcov; \
-	coverage run ../myauth/manage.py \
-		test \
-		$(package) \
-		--keepdb \
-		--failfast; \
-	coverage html; \
-	coverage report -m
+	coverage run $(MANAGE_PY_PATH) test $(package) --keepdb --failfast && coverage html && coverage report -m
+	# coverage run --concurrency=multiprocessing $(MANAGE_PY_PATH) test --keepdb --failfast --timing --parallel --exclude-tag=exclude-parallel && coverage combine && coverage html && coverage report -m
 
-# Build test
-build_test:
-	rm -rfv dist; \
-	python3 -m build
+pylint:
+	pylint --load-plugins pylint_django $(package)
 
-# Tox tests
-tox_tests:
-	export USE_MYSQL=False; \
-	tox -v -e allianceauth-latest; \
-	rm -rf .tox/
-
-# Pre-commit checks
-pre-commit-checks:
-	pre-commit run --all-files
+graph_models:
+	python $(MANAGE_PY_PATH) graph_models $(package) --arrow-shape normal -o $(appname)_models.png
