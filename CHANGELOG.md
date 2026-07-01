@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [In Development]
 
-## [2.0.0] - TBD
+## [2.0.0] - 2026-07-01
 
 This release adds support for Alliance Auth V5, contains breaking changes and fixes.
 
@@ -20,7 +20,7 @@ If you are updating from an existing installation of the abandoned project, plea
 - BREAKING CHANGE: Removed support for Python 3.9
 - BREAKING CHANGE: Now requires Member Audit 5+
 - BREAKING CHANGE: Now requires Secure Groups 0.10.1+
-- Added support for AA 5
+- Added support for AAv5
 - Removed unused module `memberaudit.py`
 - Refactoring
 - Modernized and extended tests

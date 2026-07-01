@@ -22,7 +22,7 @@ An Alliance Auth app that enables secure group management with Member Audit.
 
 > **Important**<br>
 > This project is the official successor of the abandoned project [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups).
-> For instructions on how to update from an existing aa-ma-securegroups installation please see [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
+> For instructions on how to update from an existing installation of the abandoned project please see [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
 
 ## Features
 
