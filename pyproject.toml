@@ -36,15 +36,15 @@ dependencies = [
     "allianceauth-securegroups>=0.10.1",
 ]
 
+[project.optional-dependencies]
+test = ["coverage", "factory_boy", "allianceauth-app-utils>=1.32"]
+
 [project.urls]
 Changelog = "https://github.com/ppfeufer/aa-ma-securegroups/blob/master/CHANGELOG.md"
 Codecov = "https://codecov.io/gh/ppfeufer/aa-ma-securegroups"
 Documentation = "https://github.com/ppfeufer/aa-ma-securegroups/blob/master/README.md"
 GitHub = "https://github.com/ppfeufer/aa-ma-securegroups"
 Tracker = "https://github.com/ppfeufer/aa-ma-securegroups/issues"
-
-[project.optional-dependencies]
-test = ["coverage", "factory_boy", "allianceauth-app-utils>=1.32"]
 
 [tool.flit.module]
 name = "memberaudit_securegroups"

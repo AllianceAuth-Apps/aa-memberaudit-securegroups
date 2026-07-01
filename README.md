@@ -1,41 +1,33 @@
-# Member Audit Secure Groups Integration for Alliance Auth<a name="member-audit-secure-groups-integration-for-alliance-auth"></a>
+# Member Audit Secure Groups
 
-This is an integration between [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) and [Secure Groups](https://github.com/pvyParts/allianceauth-secure-groups) for [Alliance Auth](https://gitlab.com/allianceauth/allianceauth) (AA).
+An Alliance Auth app that enables secure group management with Member Audit.
 
-![release](https://img.shields.io/pypi/v/aa-memberaudit-securegroups?label=release)
-![License](https://img.shields.io/badge/license-GPL-green)
-![python](https://img.shields.io/pypi/pyversions/aa-memberaudit-securegroups)
-![django](https://img.shields.io/pypi/djversions/aa-memberaudit-securegroups?label=django)
-![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)
-![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![release](https://img.shields.io/pypi/v/aa-memberaudit-securegroups?label=release)](https://pypi.org/project/aa-memberaudit-securegroups/)
+[![python](https://img.shields.io/pypi/pyversions/aa-memberaudit-securegroups)](https://pypi.org/project/aa-memberaudit-securegroups/)
+[![django](https://img.shields.io/pypi/djversions/aa-memberaudit-securegroups?label=django)](https://pypi.org/project/aa-memberaudit-securegroups/)
+[![pipeline status](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/badges/master/pipeline.svg)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/commits/master)
+[![codecov](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups/graph/badge.svg?token=PYKJH1J5TE)](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups)
+[![license](https://img.shields.io/badge/license-MIT-green)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/LICENSE)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![chat](https://img.shields.io/discord/790364535294132234)](https://discord.gg/zmh52wnfvM)
 
-______________________________________________________________________
+## Contents
 
-<!-- mdformat-toc start --slug=gitlab --maxlevel=6 --minlevel=2 -->
-
-- [Important](#important)
 - [Features](#features)
 - [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Step 1: Install the Package](#step-1-install-the-package)
-  - [Step 2: Config](#step-2-config)
-  - [Step 3: Finalize App Installation](#step-3-finalize-app-installation)
-- [Filters](#filters)
+- [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
+- [Documentation](#documentation)
 - [Changelog](#changelog)
 
-<!-- mdformat-toc end -->
+> **Important**<br>
+> This project is the official successor of [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups).
+> For instructions on how to update from an existing aa-ma-securegroups installation please see [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
 
-______________________________________________________________________
+## Features
 
-## Important<a name="important"></a>
-
-**This project has been moved to [GitHub](https://github.com/ppfeufer/aa-ma-securegroups).**
-
-For migrating, please read the [migration guide](https://github.com/ppfeufer/aa-ma-securegroups#step-05-migrating-from-member-audit-securegroups) on GitHub.
-
-Development here will be discontinued.
-
-## Features<a name="features"></a>
+Member Audit Secure Groups provides Secure Groups filters based on character information from Member Audit.
+The following filters are provided:
 
 - Activity Filter
 - Asset Filter
@@ -47,33 +39,74 @@ Development here will be discontinued.
 - Skill Point Filter
 - Time in Corporation Filter
 
-## Installation<a name="installation"></a>
+## Installation
 
-### Requirements<a name="requirements"></a>
+This chapter explains how to install Member Audit Secure Groups (MASG).
 
-This integration needs [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) and [Secure Groups](https://github.com/pvyParts/allianceauth-secure-groups) to function. Please make sure they are installed before continuing.
+### Step 1 - Check prerequisites
 
-### Step 1: Install the Package<a name="step-1-install-the-package"></a>
+1. MASG is a plugin for Alliance Auth. If you don't have Alliance Auth running already, please install it first before proceeding. (see the official [AA installation guide](https://allianceauth.readthedocs.io/en/latest/installation/auth/allianceauth/) for details)
+
+2. MASG needs the app [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) to function. Please make sure it is installed, before continuing.
+
+3. MASG needs the app [Secure Groups](https://gitlab.com/ErikKalkoken/django-eveuniverse) to function. Please make sure it is installed, before continuing.
+
+### Step 2: Install the app
 
 Make sure you are in the virtual environment (venv) of your Alliance Auth installation. Then install the newest release from PyPI:
 
-`pip install aa-memberaudit-securegroups`
+```sh
+pip install aa-memberaudit-securegroups
+```
 
-### Step 2: Config<a name="step-2-config"></a>
+### Step 3: Configure Auth settings
 
 Add `memberaudit_securegroups` to your `INSTALLED_APPS`.
 
-### Step 3: Finalize App Installation<a name="step-3-finalize-app-installation"></a>
+### Step 4: Finalize App Installation
 
-Run migrations:
+Run migrations & copy static files
 
 ```bash
 python manage.py migrate
+python manage.py collectstatic --noinput
 ```
 
-Restart your supervisor services for Auth
+Restart your supervisor services for Auth.
 
-## Filters<a name="filters"></a>
+Member Audit Secure Groups is now fully installed.
+To configure filters please proceed to the admin site.
+
+## Updating from aa-ma-securegroups
+
+Here is how you can update from an existing aa-ma-securegroups installation:
+
+### Step 1: Uninstall the old Python package
+
+```sh
+pip uninstall aa-ma-securegroups
+```
+
+### Step 2: Install the new Python package
+
+```sh
+pip uninstall aa-memberaudit-securegroups
+```
+
+### Step 3: Finalize App Update
+
+Run migrations & copy static files:
+
+```bash
+python manage.py migrate
+python manage.py collectstatic --noinput
+```
+
+Restart your supervisor services for Auth.
+
+## Documentation
+
+The provided filters are defined as follows:
 
 | Filter Name | Matches if... |
 | -- | -- |
@@ -87,6 +120,6 @@ Restart your supervisor services for Auth
 | Title | User has a character (main or alt) in a certain corporation with a certain title |
 | Time in Corporation | User has a character (main or alt) in a certain corporation with a certain title |
 
-## Changelog<a name="changelog"></a>
+## Changelog
 
 See [CHANGELOG.md](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md)

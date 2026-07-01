@@ -9,12 +9,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [2.0.0] - TBD
 
-This release is a modernization effort. It adds support for Alliance Auth V5 and contains breaking changes.
+This release adds support for Alliance Auth V5 and contains breaking changes and fixes.
+
+### Update notes
+
+If you are updating from an existing [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups) installation, please follow the update instructions in the README: **Updating from aa-ma-securegroups**
 
 ### Changed
 
-- Added support for AAv5
-- Removed dead module `memberaudit.py`
+- BREAKING CHANGE: Removed support for Python 3.8
+- BREAKING CHANGE: Removed support for Python 3.9
+- BREAKING CHANGE: Now requires Member Audit 5+
+- BREAKING CHANGE: Now requires Secure Groups 0.10.1+
+- Added support for AA 5
+- Removed unused module `memberaudit.py`
+- Refactoring
+- Modernized and extended tests
+- Updated documentation
 
 ### Fixed
 
