@@ -7,7 +7,7 @@ An Alliance Auth app that enables secure group management with Member Audit.
 [![django](https://img.shields.io/pypi/djversions/aa-memberaudit-securegroups?label=django)](https://pypi.org/project/aa-memberaudit-securegroups/)
 [![pipeline status](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/badges/master/pipeline.svg)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/commits/master)
 [![codecov](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups/graph/badge.svg?token=PYKJH1J5TE)](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups)
-[![license](https://img.shields.io/badge/license-MIT-green)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/license-GPLv3-green)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![chat](https://img.shields.io/discord/790364535294132234)](https://discord.gg/zmh52wnfvM)
