@@ -5,9 +5,9 @@ An Alliance Auth app that enables secure group management with Member Audit.
 [![release](https://img.shields.io/pypi/v/aa-memberaudit-securegroups?label=release)](https://pypi.org/project/aa-memberaudit-securegroups/)
 [![python](https://img.shields.io/pypi/pyversions/aa-memberaudit-securegroups)](https://pypi.org/project/aa-memberaudit-securegroups/)
 [![django](https://img.shields.io/pypi/djversions/aa-memberaudit-securegroups?label=django)](https://pypi.org/project/aa-memberaudit-securegroups/)
-[![pipeline status](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/badges/master/pipeline.svg)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/commits/master)
-[![codecov](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups/graph/badge.svg?token=PYKJH1J5TE)](https://codecov.io/gl/eclipse-expeditions/aa-memberaudit-securegroups)
-[![license](https://img.shields.io/badge/license-GPLv3-green)](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/LICENSE)
+[![CI/CD Pipeline](https://github.com/AllianceAuth-Apps/aa-memberaudit-securegroups/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/AllianceAuth-Apps/aa-memberaudit-securegroups/actions/workflows/ci-cd.yaml)
+[![codecov](https://codecov.io/github/AllianceAuth-Apps/aa-memberaudit-securegroups/graph/badge.svg?token=SqVuzCAEja)](https://codecov.io/github/AllianceAuth-Apps/aa-memberaudit-securegroups)
+[![license](https://img.shields.io/badge/license-GPLv3-green)](https://github.com/AllianceAuth-Apps/aa-memberaudit-securegroups#GPL-3.0-1-ov-file)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![chat](https://img.shields.io/discord/790364535294132234)](https://discord.gg/zmh52wnfvM)
@@ -18,9 +18,8 @@ An Alliance Auth app that enables secure group management with Member Audit.
 - [Installation](#installation)
 - [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
 - [Documentation](#documentation)
-- [Changelog](#changelog)
 
-> **Important**<br>
+> [!IMPORTANT]
 > This project is the official successor of the abandoned project [aa-ma-securegroups](https://github.com/ppfeufer/aa-ma-securegroups).
 > For instructions on how to update from an existing installation of the abandoned project please see [Updating from aa-ma-securegroups](#updating-from-aa-ma-securegroups)
 
@@ -47,7 +46,7 @@ This chapter explains how to install Member Audit Secure Groups (MASG).
 
 1. MASG is a plugin for Alliance Auth. If you don't have Alliance Auth running already, please install it first before proceeding. (see the official [AA installation guide](https://allianceauth.readthedocs.io/en/latest/installation/auth/allianceauth/) for details)
 
-2. MASG needs the app [Member Audit](https://gitlab.com/ErikKalkoken/aa-memberaudit) to function. Please make sure it is installed, before continuing.
+2. MASG needs the app [Member Audit](https://github.com/AllianceAuth-Apps/aa-memberaudit) to function. Please make sure it is installed, before continuing.
 
 3. MASG needs the app [Secure Groups](https://github.com/Solar-Helix-Independent-Transport/allianceauth-secure-groups) to function. Please make sure it is installed, before continuing.
 
@@ -136,7 +135,3 @@ The provided filters are defined as follows:
 | Role | User has a character (main or alt) in a certain corporation with a certain role |
 | Title | User has a character (main or alt) in a certain corporation with a certain title |
 | Time in Corporation | User has a character (main or alt) in a certain corporation with a certain title |
-
-## Changelog
-
-See [CHANGELOG.md](https://gitlab.com/eclipse-expeditions/aa-memberaudit-securegroups/-/blob/master/CHANGELOG.md)

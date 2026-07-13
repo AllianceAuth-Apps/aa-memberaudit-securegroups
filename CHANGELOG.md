@@ -1,11 +1,18 @@
 # Change Log
 
+> [!WARNING]
+> This file has been decommissioned. Changes are now documented on the GitHub releases page.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [In Development]
+## [2.0.1] - 2026-07-13
+
+### Changed
+
+- Migrated the repository to GitHub: [aa-memberaudit-securegroups](https://github.com/AllianceAuth-Apps/aa-memberaudit-securegroups)
 
 ## [2.0.0] - 2026-07-01
 
